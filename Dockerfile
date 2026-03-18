@@ -1,6 +1,4 @@
-# node:18 required due to npm bug on linux/arm/v7
-#   https://github.com/docker/build-push-action/issues/1071
-FROM node:18.20.4-alpine3.20
+FROM node:24.14.0-alpine3.23
 
 ENV \
   NODE_ENV=production \
