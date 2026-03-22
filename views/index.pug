@@ -4,9 +4,6 @@ block content
   link(rel='stylesheet', href='/css/sweetalert2.11.26.23.min.css')
   script(src='/js/sweetalert2.all.11.26.23.min.js', type='text/javascript')
 
-  script.
-    var validTypes = !{JSON.stringify(validTypes)};
-
   h1#title #{title}
 
   div#new-map-section
@@ -21,108 +18,18 @@ block content
         div.map-box
           a.map-box-link(href=`/map/${map.id}`)
             div.map-box-map
-              img.map-box-img(src=`/images/${map.map_type}.png`)
+              img.map-box-img(src='/images/world.png')
             div.map-box-label #{map.name}
-            div.map-box-sublabel #{map.mapTypeName} · #{map.scratched_count} visited
+            div.map-box-sublabel #{map.scratched_count} visited
           button.delete-map-btn(type='button', data-id=`${map.id}`, onclick='deleteMap(event, this)') ✕
 
-  if maps.length > 0
-    br
-    br
-    br
-
-    - for (var i = 0; i < maps.length; i += 2)
-      div.section-row
-        div.section-column
-          button.section-collapsible-button
-            span.section-collapsible-title #{maps[i].name}
-            span.section-collapsible-icon ╲╱
-          div.section-collapsible-content
-            div.section-inner-column
-              h3.table-title Not-Visited (#{Object.keys(maps[i].unscratchedList).length})
-              table.section-table
-                tr
-                  th Name
-                  th Code
-                each name, code in maps[i].unscratchedList
-                  tr
-                    td #{name}
-                    td #{code}
-            div.section-inner-column
-              h3.table-title Visited (#{maps[i].scratchedList.length})
-              table.section-table
-                tr
-                  th Name
-                  th Year
-                  th Link
-                each val in maps[i].scratchedList
-                  tr
-                    td #{val.name}
-                    td #{val.year}
-                    td
-                      a(href=val.url target='_blank') !{val.url}
-        - if (maps[i+1] !== undefined)
-          div.section-column
-            button.section-collapsible-button
-              span.section-collapsible-title #{maps[i+1].name}
-              span.section-collapsible-icon ╲╱
-            div.section-collapsible-content
-              div.section-inner-column
-                h3.table-title Not-Visited (#{Object.keys(maps[i+1].unscratchedList).length})
-                table.section-table
-                  tr
-                    th Name
-                    th Code
-                  each name, code in maps[i+1].unscratchedList
-                    tr
-                      td #{name}
-                      td #{code}
-              div.section-inner-column
-                h3.table-title Visited (#{maps[i+1].scratchedList.length})
-                table.section-table
-                  tr
-                    th Name
-                    th Year
-                    th Link
-                  each val in maps[i+1].scratchedList
-                    tr
-                      td #{val.name}
-                      td #{val.year}
-                      td
-                        a(href=val.url target='_blank') !{val.url}
-
   script.
-    var collapsibles = document.querySelectorAll('.section-collapsible-button');
-
-    for (let i = 0; i < collapsibles.length; i++) {
-      collapsibles[i].addEventListener('click', function() {
-        var collIcon = this.querySelector('.section-collapsible-icon');
-        var collContent = this.nextElementSibling;
-
-        if (!this.classList.contains('active')) {
-          this.classList.add('active');
-          collIcon.innerHTML = '╱╲';
-          collContent.style.display = 'flex';
-        } else {
-          this.classList.remove('active');
-          collIcon.innerHTML = '╲╱';
-          collContent.style.display = 'none';
-        }
-      });
-    }
-
     async function openCreateMap() {
-      const typeOptions = validTypes.map(t =>
-        `<option value="${t}">${t.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>`
-      ).join('');
-
       const result = await Swal.fire({
         title: 'Create New Map',
         html:
           `<label class="swal2-input-label" for="swal-map-name">Map Name</label>` +
-          `<input id="swal-map-name" class="swal2-input" placeholder="My World Travels" type="text">` +
-          `<label class="swal2-input-label" for="swal-map-type">Map Type</label>` +
-          `<select id="swal-map-type" class="swal2-input">${typeOptions}</select>`,
+          `<input id="swal-map-name" class="swal2-input" placeholder="My World Travels" type="text">`,
         showConfirmButton: true,
         showDenyButton: true,
         confirmButtonText: 'Create',
@@ -131,12 +38,11 @@ block content
         denyButtonColor: '#f54b38',
         preConfirm: () => {
           const name = document.getElementById('swal-map-name').value.trim();
-          const mapType = document.getElementById('swal-map-type').value;
           if (!name) {
             Swal.showValidationMessage('Map name is required');
             return false;
           }
-          return { name, mapType };
+          return { name };
         }
       });
 

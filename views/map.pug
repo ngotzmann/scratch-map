@@ -19,6 +19,9 @@ block content
 
   h1#title #{title}
 
+  div#overview-controls
+    a#back-link(href=`/map/${mapId}`) ← Back
+
   if enableShare
     div#external-controls
       button#share-button(type='button', onclick='copyViewLink()')
