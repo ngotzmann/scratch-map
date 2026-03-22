@@ -17,14 +17,36 @@ block content
       else
         | Set Password
 
+  div#stats-banner
+    div.stat-card
+      div.stat-value #{stats.worldVisited}
+      div.stat-label countries visited
+    div.stat-divider
+    div.stat-card
+      div.stat-value #{stats.worldPct}%
+      div.stat-label of the world
+    div.stat-divider
+    div.stat-card
+      div.stat-value #{stats.continentsCovered}/#{stats.continentsTotal}
+      div.stat-label continents
+    div#continent-breakdown
+      each c in stats.continents
+        div.continent-row
+          div.continent-name #{c.name}
+          div.continent-bar
+            div.continent-bar-fill(style=`width:${c.pct}%`)
+          div.continent-fraction #{c.visited}/#{c.total}
+
   div#map-section
     - for (var i = 0; i < validTypes.length; i++)
+      - var td = typeData[validTypes[i]]
+      - var pct = td.total > 0 ? Math.round(td.count / td.total * 100) : 0
       div.map-box
         a.map-box-link(href=`/map/${mapId}/${validTypes[i]}`)
           div.map-box-map
             img.map-box-img(src=`/images/${validTypes[i]}.png`)
-          div.map-box-label #{typeData[validTypes[i]].name}
-          div.map-box-sublabel #{typeData[validTypes[i]].count} visited
+          div.map-box-label #{td.name}
+          div.map-box-sublabel #{td.count} / #{td.total} &nbsp;·&nbsp; #{pct}%
 
   br
   br

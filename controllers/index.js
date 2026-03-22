@@ -73,6 +73,7 @@ export const getMapOverview = (async (req, res, next) => {
     typeData[type] = {
       name: parseTypeName(type),
       count: counts[type] || 0,
+      total: Object.keys(allCodes).length,
       scratchedList: scratched.map(s => ({
         code: s.code,
         name: allCodes[s.code] || s.code,
@@ -89,7 +90,9 @@ export const getMapOverview = (async (req, res, next) => {
     };
   }
 
-  res.render('map_overview', { title: map.name, mapId, validTypes, parseTypeName, typeData, isPasswordProtected: !!map.password_hash });
+  const stats = computeStats(typeData);
+
+  res.render('map_overview', { title: map.name, mapId, validTypes, parseTypeName, typeData, stats, isPasswordProtected: !!map.password_hash });
 });
 
 export const getMap = (async (req, res, next) => {
@@ -395,6 +398,11 @@ export const putMapSettings = async (req, res, next) => {
   if (unvisitedColor && hexRe.test(unvisitedColor)) settings.unvisitedColor = unvisitedColor;
   if (visitedColor   && hexRe.test(visitedColor))   settings.visitedColor   = visitedColor;
   if (bgColor        && hexRe.test(bgColor))        settings.bgColor        = bgColor;
+  for (const code of Object.keys(CONTINENT_DEFAULTS)) {
+    const key = continentKey(code);
+    const val = req.body[key];
+    if (val && hexRe.test(val)) settings[key] = val;
+  }
   await updateMapSettings(mapId, settings);
   return res.status(200).json({ status: 200 });
 };
@@ -424,6 +432,32 @@ function validateVisitFields({ mapId, mapType, code, tripName, description, visi
   return null;
 }
 
+const WORLD_CONTINENTS = {
+  Europe:        ['AL','AD','AT','BY','BE','BA','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IS','IE','IT','XK','LV','LI','LT','LU','MK','MT','MD','MC','ME','NL','NO','PL','PT','RO','SM','RS','SK','SI','ES','SE','CH','UA','GB','VA'],
+  Asia:          ['AF','AM','AZ','BH','BD','BT','BN','KH','CN','GE','IN','ID','IR','IQ','IL','JP','JO','KZ','KW','KG','LA','LB','MY','MV','MN','MM','NP','KP','OM','PK','PS','PH','QA','SA','SG','KR','LK','SY','TW','TJ','TH','TL','TR','TM','AE','UZ','VN','YE'],
+  Africa:        ['DZ','AO','BJ','BW','BF','BI','CM','CV','CF','TD','KM','CD','CG','CI','DJ','EG','GQ','ER','ET','GA','GM','GH','GN','GW','KE','LS','LR','LY','MG','MW','ML','MR','MU','MA','MZ','NA','NE','NG','RW','ST','SN','SL','SO','ZA','SS','SD','SZ','TZ','TG','TN','UG','EH','ZM','ZW'],
+  'North America': ['AG','BS','BB','BZ','CA','CR','CU','DM','DO','SV','GD','GT','HT','HN','JM','MX','NI','PA','KN','LC','VC','TT','US','GL'],
+  'South America': ['AR','BO','BR','CL','CO','EC','GY','PY','PE','SR','UY','VE'],
+  Oceania:       ['AU','FJ','KI','MH','FM','NR','NZ','PW','PG','WS','SB','TO','TV','VU'],
+};
+
+function computeStats(typeData) {
+  const world = typeData['world'];
+  const visitedCodes = new Set(world.scratchedList.map(s => s.code.toUpperCase()));
+
+  const continents = Object.entries(WORLD_CONTINENTS).map(([name, codes]) => {
+    const visited = codes.filter(c => visitedCodes.has(c)).length;
+    return { name, visited, total: codes.length, pct: Math.round(visited / codes.length * 100) };
+  });
+
+  const worldVisited = world.scratchedList.length;
+  const worldTotal   = world.total;
+  const worldPct     = worldTotal > 0 ? (worldVisited / worldTotal * 100).toFixed(1) : '0.0';
+  const continentsCovered = continents.filter(c => c.visited > 0).length;
+
+  return { worldVisited, worldTotal, worldPct, continentsCovered, continentsTotal: continents.length, continents };
+}
+
 function parseTypeName(name) {
   return name.replaceAll('-', ' ').split(' ').map(w => w[0].toUpperCase() + w.substr(1)).join(' ');
 }
@@ -434,6 +468,15 @@ function sanitizeInput(string) {
 }
 
 const hexRe = /^#[0-9a-f]{6}$/i;
+
+const CONTINENT_DEFAULTS = {
+  eu: '#4a80d4', as: '#d4703a', af: '#c94848',
+  na: '#8b5cd4', sa: '#2eb898', oc: '#2aacbc',
+};
+
+function continentKey(code) {
+  return 'continent' + code[0].toUpperCase() + code[1]; // eu → continentEu
+}
 
 function lightenHex(hex, amount = 0.15) {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -446,13 +489,20 @@ function parseMapColors(settings) {
   const uv = hexRe.test(settings?.unvisitedColor) ? settings.unvisitedColor : '#c9982a';
   const v  = hexRe.test(settings?.visitedColor)   ? settings.visitedColor   : '#3daa6a';
   const bg = hexRe.test(settings?.bgColor)         ? settings.bgColor        : '#0a0a0a';
+
+  const continents = {};
+  for (const [code, def] of Object.entries(CONTINENT_DEFAULTS)) {
+    const val = hexRe.test(settings?.[continentKey(code)]) ? settings[continentKey(code)] : def;
+    continents[code] = { color: val, hover: lightenHex(val) };
+  }
+
   return {
     unvisited:      uv,
     unvisitedHover: lightenHex(uv),
     visited:        v,
     visitedHover:   lightenHex(v),
     bg,
-    customVisited:  !!settings?.visitedColor,
+    continents,
   };
 }
 

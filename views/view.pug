@@ -7,20 +7,24 @@ block content
 
   style.
     :root {
-      --color-unvisited:       !{mapColors.unvisited};
-      --color-unvisited-hover: !{mapColors.unvisitedHover};
-      --color-visited:         !{mapColors.visited};
-      --color-visited-hover:   !{mapColors.visitedHover};
-      --color-bg:              !{mapColors.bg};
+      --color-unvisited:          !{mapColors.unvisited};
+      --color-unvisited-hover:    !{mapColors.unvisitedHover};
+      --color-visited:            !{mapColors.visited};
+      --color-visited-hover:      !{mapColors.visitedHover};
+      --color-bg:                 !{mapColors.bg};
+      --color-continent-eu:       !{mapColors.continents.eu.color};
+      --color-continent-eu-hover: !{mapColors.continents.eu.hover};
+      --color-continent-as:       !{mapColors.continents.as.color};
+      --color-continent-as-hover: !{mapColors.continents.as.hover};
+      --color-continent-af:       !{mapColors.continents.af.color};
+      --color-continent-af-hover: !{mapColors.continents.af.hover};
+      --color-continent-na:       !{mapColors.continents.na.color};
+      --color-continent-na-hover: !{mapColors.continents.na.hover};
+      --color-continent-sa:       !{mapColors.continents.sa.color};
+      --color-continent-sa-hover: !{mapColors.continents.sa.hover};
+      --color-continent-oc:       !{mapColors.continents.oc.color};
+      --color-continent-oc-hover: !{mapColors.continents.oc.hover};
     }
-
-  if mapColors.customVisited
-    style.
-      .entities g.scratched path:not(.label-connector):not(.label-text),
-      .entities g.scratched:hover path:not(.label-connector):not(.label-text),
-      .entities g.scratched path:hover:not(.label-connector):not(.label-text) { fill: var(--color-visited) !important; }
-      .entities g.scratched .label-box,
-      .entities g.scratched:hover > .label-box { fill: var(--color-visited) !important; }
 
   style.
     .entities g:hover, .entities g path:hover:not(.label-connector):not(.label-text),

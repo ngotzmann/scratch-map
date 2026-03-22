@@ -219,6 +219,93 @@ html, body {
   }
 }
 
+/* Stats banner */
+#stats-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  margin: 0 auto 20px;
+  width: 90%;
+  background: white;
+  border-radius: 10px;
+  padding: 18px 24px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.stat-card {
+  text-align: center;
+  min-width: 100px;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #222;
+  line-height: 1.1;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #888;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+
+.stat-divider {
+  width: 1px;
+  background: #e8e8e8;
+  align-self: stretch;
+  margin: 0 8px;
+}
+
+#continent-breakdown {
+  flex: 1;
+  min-width: 260px;
+  display: grid;
+  gap: 5px;
+  align-content: center;
+}
+
+.continent-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.continent-name {
+  width: 110px;
+  color: #666;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.continent-bar {
+  flex: 1;
+  height: 7px;
+  background: #eee;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.continent-bar-fill {
+  height: 100%;
+  background: #4d9e1b;
+  border-radius: 4px;
+  min-width: 0;
+  transition: width .3s;
+}
+
+.continent-fraction {
+  width: 32px;
+  color: #aaa;
+  text-align: right;
+  flex-shrink: 0;
+}
+
 /* Map overview & editor */
 #overview-controls {
   margin: 0 auto;

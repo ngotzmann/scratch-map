@@ -1,9 +1,21 @@
 :root {
-  --color-unvisited:       #c9982a;
-  --color-unvisited-hover: #e8b830;
-  --color-visited:         #3daa6a;
-  --color-visited-hover:   #4dc47c;
-  --color-bg:              #0a0a0a;
+  --color-unvisited:          #c9982a;
+  --color-unvisited-hover:    #e8b830;
+  --color-visited:            #3daa6a;
+  --color-visited-hover:      #4dc47c;
+  --color-bg:                 #0a0a0a;
+  --color-continent-eu:       #4a80d4;
+  --color-continent-eu-hover: #5a90e4;
+  --color-continent-as:       #d4703a;
+  --color-continent-as-hover: #e4804a;
+  --color-continent-af:       #c94848;
+  --color-continent-af-hover: #d95858;
+  --color-continent-na:       #8b5cd4;
+  --color-continent-na-hover: #9b6ce4;
+  --color-continent-sa:       #2eb898;
+  --color-continent-sa-hover: #3ec8a8;
+  --color-continent-oc:       #2aacbc;
+  --color-continent-oc-hover: #3abccc;
 }
 
 /* bodies of water */
@@ -48,35 +60,35 @@
 
 /* ── Visited colors by continent ─────────────────────────────────────────────── */
 
-/* Europe — cornflower blue */
-.entities g.scratched.continent-eu path:not(.label-connector):not(.label-text) { fill: #4a80d4; }
+/* Europe */
+.entities g.scratched.continent-eu path:not(.label-connector):not(.label-text) { fill: var(--color-continent-eu); }
 .entities g.scratched.continent-eu:hover path:not(.label-connector):not(.label-text),
-.entities g.scratched.continent-eu path:hover:not(.label-connector):not(.label-text) { fill: #5a90e4; cursor: pointer; }
+.entities g.scratched.continent-eu path:hover:not(.label-connector):not(.label-text) { fill: var(--color-continent-eu-hover); cursor: pointer; }
 
-/* Asia — saffron orange */
-.entities g.scratched.continent-as path:not(.label-connector):not(.label-text) { fill: #d4703a; }
+/* Asia */
+.entities g.scratched.continent-as path:not(.label-connector):not(.label-text) { fill: var(--color-continent-as); }
 .entities g.scratched.continent-as:hover path:not(.label-connector):not(.label-text),
-.entities g.scratched.continent-as path:hover:not(.label-connector):not(.label-text) { fill: #e4804a; cursor: pointer; }
+.entities g.scratched.continent-as path:hover:not(.label-connector):not(.label-text) { fill: var(--color-continent-as-hover); cursor: pointer; }
 
-/* Africa — terracotta red */
-.entities g.scratched.continent-af path:not(.label-connector):not(.label-text) { fill: #c94848; }
+/* Africa */
+.entities g.scratched.continent-af path:not(.label-connector):not(.label-text) { fill: var(--color-continent-af); }
 .entities g.scratched.continent-af:hover path:not(.label-connector):not(.label-text),
-.entities g.scratched.continent-af path:hover:not(.label-connector):not(.label-text) { fill: #d95858; cursor: pointer; }
+.entities g.scratched.continent-af path:hover:not(.label-connector):not(.label-text) { fill: var(--color-continent-af-hover); cursor: pointer; }
 
-/* North America — violet purple */
-.entities g.scratched.continent-na path:not(.label-connector):not(.label-text) { fill: #8b5cd4; }
+/* North America */
+.entities g.scratched.continent-na path:not(.label-connector):not(.label-text) { fill: var(--color-continent-na); }
 .entities g.scratched.continent-na:hover path:not(.label-connector):not(.label-text),
-.entities g.scratched.continent-na path:hover:not(.label-connector):not(.label-text) { fill: #9b6ce4; cursor: pointer; }
+.entities g.scratched.continent-na path:hover:not(.label-connector):not(.label-text) { fill: var(--color-continent-na-hover); cursor: pointer; }
 
-/* South America — emerald teal */
-.entities g.scratched.continent-sa path:not(.label-connector):not(.label-text) { fill: #2eb898; }
+/* South America */
+.entities g.scratched.continent-sa path:not(.label-connector):not(.label-text) { fill: var(--color-continent-sa); }
 .entities g.scratched.continent-sa:hover path:not(.label-connector):not(.label-text),
-.entities g.scratched.continent-sa path:hover:not(.label-connector):not(.label-text) { fill: #3ec8a8; cursor: pointer; }
+.entities g.scratched.continent-sa path:hover:not(.label-connector):not(.label-text) { fill: var(--color-continent-sa-hover); cursor: pointer; }
 
-/* Oceania — cyan turquoise */
-.entities g.scratched.continent-oc path:not(.label-connector):not(.label-text) { fill: #2aacbc; }
+/* Oceania */
+.entities g.scratched.continent-oc path:not(.label-connector):not(.label-text) { fill: var(--color-continent-oc); }
 .entities g.scratched.continent-oc:hover path:not(.label-connector):not(.label-text),
-.entities g.scratched.continent-oc path:hover:not(.label-connector):not(.label-text) { fill: #3abccc; cursor: pointer; }
+.entities g.scratched.continent-oc path:hover:not(.label-connector):not(.label-text) { fill: var(--color-continent-oc-hover); cursor: pointer; }
 
 /* ── Never-visit: dark slate, dimmed ────────────────────────────────────────── */
 .entities g.disabled-location path:not(.label-connector):not(.label-text) {
@@ -102,18 +114,18 @@
 .entities g:hover > .label-box                                            { fill: var(--color-unvisited-hover); cursor: pointer; }
 .entities g.scratched .label-box                                          { fill: var(--color-visited); }
 .entities g.scratched:hover > .label-box                                  { fill: var(--color-visited-hover); }
-.entities g.scratched.continent-eu .label-box                             { fill: #4a80d4; }
-.entities g.scratched.continent-eu:hover > .label-box                     { fill: #5a90e4; }
-.entities g.scratched.continent-as .label-box                             { fill: #d4703a; }
-.entities g.scratched.continent-as:hover > .label-box                     { fill: #e4804a; }
-.entities g.scratched.continent-af .label-box                             { fill: #c94848; }
-.entities g.scratched.continent-af:hover > .label-box                     { fill: #d95858; }
-.entities g.scratched.continent-na .label-box                             { fill: #8b5cd4; }
-.entities g.scratched.continent-na:hover > .label-box                     { fill: #9b6ce4; }
-.entities g.scratched.continent-sa .label-box                             { fill: #2eb898; }
-.entities g.scratched.continent-sa:hover > .label-box                     { fill: #3ec8a8; }
-.entities g.scratched.continent-oc .label-box                             { fill: #2aacbc; }
-.entities g.scratched.continent-oc:hover > .label-box                     { fill: #3abccc; }
+.entities g.scratched.continent-eu .label-box                             { fill: var(--color-continent-eu); }
+.entities g.scratched.continent-eu:hover > .label-box                     { fill: var(--color-continent-eu-hover); }
+.entities g.scratched.continent-as .label-box                             { fill: var(--color-continent-as); }
+.entities g.scratched.continent-as:hover > .label-box                     { fill: var(--color-continent-as-hover); }
+.entities g.scratched.continent-af .label-box                             { fill: var(--color-continent-af); }
+.entities g.scratched.continent-af:hover > .label-box                     { fill: var(--color-continent-af-hover); }
+.entities g.scratched.continent-na .label-box                             { fill: var(--color-continent-na); }
+.entities g.scratched.continent-na:hover > .label-box                     { fill: var(--color-continent-na-hover); }
+.entities g.scratched.continent-sa .label-box                             { fill: var(--color-continent-sa); }
+.entities g.scratched.continent-sa:hover > .label-box                     { fill: var(--color-continent-sa-hover); }
+.entities g.scratched.continent-oc .label-box                             { fill: var(--color-continent-oc); }
+.entities g.scratched.continent-oc:hover > .label-box                     { fill: var(--color-continent-oc-hover); }
 .entities g.disabled-location .label-box                                  { fill: #4a4a55; opacity: 0.6; }
 .entities g.disabled-location:hover > .label-box                          { fill: #5e5e6e; opacity: 0.8; }
 

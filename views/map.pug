@@ -10,20 +10,24 @@ block content
 
   style.
     :root {
-      --color-unvisited:       !{mapColors.unvisited};
-      --color-unvisited-hover: !{mapColors.unvisitedHover};
-      --color-visited:         !{mapColors.visited};
-      --color-visited-hover:   !{mapColors.visitedHover};
-      --color-bg:              !{mapColors.bg};
+      --color-unvisited:          !{mapColors.unvisited};
+      --color-unvisited-hover:    !{mapColors.unvisitedHover};
+      --color-visited:            !{mapColors.visited};
+      --color-visited-hover:      !{mapColors.visitedHover};
+      --color-bg:                 !{mapColors.bg};
+      --color-continent-eu:       !{mapColors.continents.eu.color};
+      --color-continent-eu-hover: !{mapColors.continents.eu.hover};
+      --color-continent-as:       !{mapColors.continents.as.color};
+      --color-continent-as-hover: !{mapColors.continents.as.hover};
+      --color-continent-af:       !{mapColors.continents.af.color};
+      --color-continent-af-hover: !{mapColors.continents.af.hover};
+      --color-continent-na:       !{mapColors.continents.na.color};
+      --color-continent-na-hover: !{mapColors.continents.na.hover};
+      --color-continent-sa:       !{mapColors.continents.sa.color};
+      --color-continent-sa-hover: !{mapColors.continents.sa.hover};
+      --color-continent-oc:       !{mapColors.continents.oc.color};
+      --color-continent-oc-hover: !{mapColors.continents.oc.hover};
     }
-
-  if mapColors.customVisited
-    style.
-      .entities g.scratched path:not(.label-connector):not(.label-text),
-      .entities g.scratched:hover path:not(.label-connector):not(.label-text),
-      .entities g.scratched path:hover:not(.label-connector):not(.label-text) { fill: var(--color-visited) !important; }
-      .entities g.scratched .label-box,
-      .entities g.scratched:hover > .label-box { fill: var(--color-visited) !important; }
 
   style.
     body { overflow: hidden; }
@@ -107,7 +111,11 @@ block content
       }
 
   script.
-    const DEFAULT_MAP_COLORS = { unvisited: '#c9982a', visited: '#3daa6a', bg: '#0a0a0a' };
+    const COLOR_DEFAULTS = {
+      unvisited: '#c9982a', visited: '#3daa6a', bg: '#0a0a0a',
+      continentEu: '#4a80d4', continentAs: '#d4703a', continentAf: '#c94848',
+      continentNa: '#8b5cd4', continentSa: '#2eb898', continentOc: '#2aacbc',
+    };
 
     function lightenHex(hex, amount) {
       amount = amount || 0.15;
@@ -119,44 +127,75 @@ block content
       }).join('');
     }
 
-    function applyColors(uv, v, bg) {
+    function applyColors(c) {
       var root = document.documentElement;
-      root.style.setProperty('--color-unvisited',       uv);
-      root.style.setProperty('--color-unvisited-hover', lightenHex(uv));
-      root.style.setProperty('--color-visited',         v);
-      root.style.setProperty('--color-visited-hover',   lightenHex(v));
-      root.style.setProperty('--color-bg',              bg);
+      root.style.setProperty('--color-unvisited',          c.unvisited);
+      root.style.setProperty('--color-unvisited-hover',    lightenHex(c.unvisited));
+      root.style.setProperty('--color-visited',            c.visited);
+      root.style.setProperty('--color-visited-hover',      lightenHex(c.visited));
+      root.style.setProperty('--color-bg',                 c.bg);
+      root.style.setProperty('--color-continent-eu',       c.continentEu);
+      root.style.setProperty('--color-continent-eu-hover', lightenHex(c.continentEu));
+      root.style.setProperty('--color-continent-as',       c.continentAs);
+      root.style.setProperty('--color-continent-as-hover', lightenHex(c.continentAs));
+      root.style.setProperty('--color-continent-af',       c.continentAf);
+      root.style.setProperty('--color-continent-af-hover', lightenHex(c.continentAf));
+      root.style.setProperty('--color-continent-na',       c.continentNa);
+      root.style.setProperty('--color-continent-na-hover', lightenHex(c.continentNa));
+      root.style.setProperty('--color-continent-sa',       c.continentSa);
+      root.style.setProperty('--color-continent-sa-hover', lightenHex(c.continentSa));
+      root.style.setProperty('--color-continent-oc',       c.continentOc);
+      root.style.setProperty('--color-continent-oc-hover', lightenHex(c.continentOc));
+    }
 
-      var override = document.getElementById('map-color-override');
-      if (v !== DEFAULT_MAP_COLORS.visited) {
-        if (!override) {
-          override = document.createElement('style');
-          override.id = 'map-color-override';
-          document.head.appendChild(override);
-        }
-        override.textContent =
-          '.entities g.scratched path:not(.label-connector):not(.label-text),' +
-          '.entities g.scratched:hover path:not(.label-connector):not(.label-text),' +
-          '.entities g.scratched path:hover:not(.label-connector):not(.label-text){fill:var(--color-visited)!important}' +
-          '.entities g.scratched .label-box,' +
-          '.entities g.scratched:hover > .label-box{fill:var(--color-visited)!important}';
-      } else if (override) {
-        override.remove();
-      }
+    function readCurrentColors() {
+      return {
+        unvisited:   document.getElementById('c-unvisited').value,
+        visited:     document.getElementById('c-visited').value,
+        bg:          document.getElementById('c-bg').value,
+        continentEu: document.getElementById('c-eu').value,
+        continentAs: document.getElementById('c-as').value,
+        continentAf: document.getElementById('c-af').value,
+        continentNa: document.getElementById('c-na').value,
+        continentSa: document.getElementById('c-sa').value,
+        continentOc: document.getElementById('c-oc').value,
+      };
+    }
+
+    function savedColors() {
+      return {
+        unvisited:   mapColors.unvisited,
+        visited:     mapColors.visited,
+        bg:          mapColors.bg,
+        continentEu: mapColors.continents.eu.color,
+        continentAs: mapColors.continents.as.color,
+        continentAf: mapColors.continents.af.color,
+        continentNa: mapColors.continents.na.color,
+        continentSa: mapColors.continents.sa.color,
+        continentOc: mapColors.continents.oc.color,
+      };
     }
 
     async function openColorSettings() {
+      var sc = savedColors();
       var result = await Swal.fire({
         title: 'Map Colors',
+        width: 520,
         html:
           '<div style="text-align:left;padding:0 4px">' +
-            colorRow('Unvisited territories', 'c-unvisited', mapColors.unvisited) +
-            colorRow('Visited territories', 'c-visited', mapColors.visited,
-              mapColors.visited !== DEFAULT_MAP_COLORS.visited
-                ? '<span style="font-size:11px;color:#aaa;margin-left:8px">Overrides continent colors on world map</span>'
-                : '<span style="font-size:11px;color:#aaa;margin-left:8px">Overrides continent colors on world map</span>') +
-            colorRow('Background / ocean', 'c-bg', mapColors.bg) +
-          '</div>',
+          section('General') +
+          colorRow('Unvisited',       'c-unvisited', sc.unvisited) +
+          colorRow('Visited (non-world)', 'c-visited', sc.visited) +
+          colorRow('Background / ocean', 'c-bg',      sc.bg) +
+          section('World map — visited by continent') +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px">' +
+          colorRow('Europe',        'c-eu', sc.continentEu) +
+          colorRow('Asia',          'c-as', sc.continentAs) +
+          colorRow('Africa',        'c-af', sc.continentAf) +
+          colorRow('North America', 'c-na', sc.continentNa) +
+          colorRow('South America', 'c-sa', sc.continentSa) +
+          colorRow('Oceania',       'c-oc', sc.continentOc) +
+          '</div></div>',
         showConfirmButton: true,
         showDenyButton: true,
         confirmButtonText: 'Save',
@@ -164,55 +203,66 @@ block content
         confirmButtonColor: '#4d9e1b',
         denyButtonColor: '#aaa',
         didOpen: function() {
-          document.getElementById('c-unvisited').addEventListener('input', function() { applyColors(this.value, document.getElementById('c-visited').value, document.getElementById('c-bg').value); });
-          document.getElementById('c-visited').addEventListener('input',   function() { applyColors(document.getElementById('c-unvisited').value, this.value, document.getElementById('c-bg').value); });
-          document.getElementById('c-bg').addEventListener('input',        function() { applyColors(document.getElementById('c-unvisited').value, document.getElementById('c-visited').value, this.value); });
+          var ids = ['c-unvisited','c-visited','c-bg','c-eu','c-as','c-af','c-na','c-sa','c-oc'];
+          ids.forEach(function(id) {
+            document.getElementById(id).addEventListener('input', function() {
+              applyColors(readCurrentColors());
+            });
+          });
         },
-        preConfirm: function() {
-          return {
-            unvisitedColor: document.getElementById('c-unvisited').value,
-            visitedColor:   document.getElementById('c-visited').value,
-            bgColor:        document.getElementById('c-bg').value,
-          };
-        },
+        preConfirm: readCurrentColors,
       });
 
       if (!result.isConfirmed) {
-        applyColors(mapColors.unvisited, mapColors.visited, mapColors.bg);
+        applyColors(sc);
         return;
       }
 
-      var uv = result.value.unvisitedColor;
-      var v  = result.value.visitedColor;
-      var bg = result.value.bgColor;
+      var c = result.value;
+      var payload = {
+        unvisitedColor: c.unvisited   === COLOR_DEFAULTS.unvisited   ? null : c.unvisited,
+        visitedColor:   c.visited     === COLOR_DEFAULTS.visited      ? null : c.visited,
+        bgColor:        c.bg          === COLOR_DEFAULTS.bg           ? null : c.bg,
+        continentEu:    c.continentEu === COLOR_DEFAULTS.continentEu ? null : c.continentEu,
+        continentAs:    c.continentAs === COLOR_DEFAULTS.continentAs ? null : c.continentAs,
+        continentAf:    c.continentAf === COLOR_DEFAULTS.continentAf ? null : c.continentAf,
+        continentNa:    c.continentNa === COLOR_DEFAULTS.continentNa ? null : c.continentNa,
+        continentSa:    c.continentSa === COLOR_DEFAULTS.continentSa ? null : c.continentSa,
+        continentOc:    c.continentOc === COLOR_DEFAULTS.continentOc ? null : c.continentOc,
+      };
 
       var resp = await fetch('/maps/' + mapId + '/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          unvisitedColor: uv === DEFAULT_MAP_COLORS.unvisited ? null : uv,
-          visitedColor:   v  === DEFAULT_MAP_COLORS.visited   ? null : v,
-          bgColor:        bg === DEFAULT_MAP_COLORS.bg         ? null : bg,
-        }),
+        body: JSON.stringify(payload),
       });
       var data = await resp.json();
       if (data.status !== 200) {
         Toast.fire({ icon: 'error', title: data.message });
-        applyColors(mapColors.unvisited, mapColors.visited, mapColors.bg);
+        applyColors(sc);
         return;
       }
 
-      mapColors.unvisited = uv;
-      mapColors.visited   = v;
-      mapColors.bg        = bg;
-      applyColors(uv, v, bg);
+      mapColors.unvisited        = c.unvisited;
+      mapColors.visited          = c.visited;
+      mapColors.bg               = c.bg;
+      mapColors.continents.eu    = { color: c.continentEu, hover: lightenHex(c.continentEu) };
+      mapColors.continents.as    = { color: c.continentAs, hover: lightenHex(c.continentAs) };
+      mapColors.continents.af    = { color: c.continentAf, hover: lightenHex(c.continentAf) };
+      mapColors.continents.na    = { color: c.continentNa, hover: lightenHex(c.continentNa) };
+      mapColors.continents.sa    = { color: c.continentSa, hover: lightenHex(c.continentSa) };
+      mapColors.continents.oc    = { color: c.continentOc, hover: lightenHex(c.continentOc) };
+      applyColors(c);
       Toast.fire({ icon: 'success', title: 'Colors saved!' });
     }
 
-    function colorRow(label, id, value, extra) {
-      return '<div style="display:flex;align-items:center;margin-bottom:14px">' +
-        '<label style="font-size:13px;color:#555;font-weight:600;width:180px;flex-shrink:0">' + label + '</label>' +
-        '<input type="color" id="' + id + '" value="' + value + '" style="width:48px;height:32px;cursor:pointer;border:1px solid #ddd;border-radius:4px;padding:2px">' +
-        (extra || '') +
+    function section(title) {
+      return '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#aaa;margin:14px 0 8px">' + title + '</div>';
+    }
+
+    function colorRow(label, id, value) {
+      return '<div style="display:flex;align-items:center;margin-bottom:8px;gap:8px">' +
+        '<input type="color" id="' + id + '" value="' + value + '" style="width:36px;height:28px;cursor:pointer;border:1px solid #ddd;border-radius:4px;padding:2px;flex-shrink:0">' +
+        '<label for="' + id + '" style="font-size:13px;color:#555;cursor:pointer">' + label + '</label>' +
         '</div>';
     }
