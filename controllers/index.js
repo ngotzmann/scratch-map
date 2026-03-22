@@ -141,9 +141,9 @@ export const deleteMap = (async (req, res, next) => {
 export const postScratch = (async (req, res, next) => {
   if (global.LOG_LEVEL === 'DEBUG') console.debug(req.body);
 
-  const { mapId, mapType, code, tripName, description, visitStart, visitEnd, photoUrls, documentsUrl } = req.body;
+  const { mapId, mapType, code, tripName, description, visitStart, visitEnd, photoUrls, documentsUrl, diaryEntries } = req.body;
 
-  const validationError = validateVisitFields({ mapId, mapType, code, tripName, description, visitStart, visitEnd, photoUrls, documentsUrl });
+  const validationError = validateVisitFields({ mapId, mapType, code, tripName, description, visitStart, visitEnd, photoUrls, documentsUrl, diaryEntries });
   if (validationError) return res.status(422).json({ status: 422, message: validationError });
 
   const map = await getMapById(mapId);
@@ -161,6 +161,7 @@ export const postScratch = (async (req, res, next) => {
     visitEnd,
     photoUrls,
     documentsUrl,
+    diaryEntries,
   });
 
   return res.status(201).json({ status: 201, code: code.toUpperCase(), allScratched });
@@ -173,9 +174,9 @@ export const putVisit = (async (req, res, next) => {
     return res.status(422).json({ status: 422, message: 'Invalid visit ID' });
   }
 
-  const { mapId, tripName, description, visitStart, visitEnd, photoUrls, documentsUrl } = req.body;
+  const { mapId, tripName, description, visitStart, visitEnd, photoUrls, documentsUrl, diaryEntries } = req.body;
 
-  const validationError = validateVisitFields({ mapId, mapType: 'world', code: 'XX', tripName, description, visitStart, visitEnd, photoUrls, documentsUrl });
+  const validationError = validateVisitFields({ mapId, mapType: 'world', code: 'XX', tripName, description, visitStart, visitEnd, photoUrls, documentsUrl, diaryEntries });
   if (validationError) return res.status(422).json({ status: 422, message: validationError });
 
   const allScratched = await updateVisit(visitId, mapId, {
@@ -185,6 +186,7 @@ export const putVisit = (async (req, res, next) => {
     visitEnd,
     photoUrls,
     documentsUrl,
+    diaryEntries,
   });
 
   if (!allScratched) return res.status(404).json({ status: 404, message: 'Visit not found' });
@@ -212,7 +214,7 @@ export const deleteVisit = (async (req, res, next) => {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function validateVisitFields({ mapId, mapType, code, tripName, description, visitStart, visitEnd, photoUrls, documentsUrl }) {
+function validateVisitFields({ mapId, mapType, code, tripName, description, visitStart, visitEnd, photoUrls, documentsUrl, diaryEntries }) {
   if (!uuidRegex.test(mapId))             return 'Invalid map ID';
   if (!validTypes.includes(mapType))      return 'Invalid map type';
   if (typeof code !== 'string' || code.length < 1 || code.length > 3) return 'Invalid code';
@@ -227,6 +229,11 @@ function validateVisitFields({ mapId, mapType, code, tripName, description, visi
   }
   if (typeof documentsUrl !== 'string' || documentsUrl.length > maxURLLength) return 'Documents URL too long';
   if (documentsUrl && !validator.isURL(documentsUrl, validatorURLOptions))    return 'Invalid documents URL';
+  if (!Array.isArray(diaryEntries)) return 'Invalid diary entries';
+  for (const entry of diaryEntries) {
+    if (typeof entry.text !== 'string') return 'Invalid diary entry text';
+    if (entry.date && !dateRegex.test(entry.date)) return 'Invalid diary entry date';
+  }
   return null;
 }
 

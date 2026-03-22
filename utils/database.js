@@ -43,7 +43,6 @@ export const createConnection = async () => {
 export const getConnection = () => pool;
 
 async function runMigrations(client) {
-  // Named maps
   await client.query(`
     CREATE TABLE IF NOT EXISTS maps (
       id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -65,7 +64,6 @@ async function runMigrations(client) {
     END $$
   `);
 
-  // Lean scratched table — just marks a location as visited
   await client.query(`
     CREATE TABLE IF NOT EXISTS scratched (
       id         SERIAL PRIMARY KEY,
@@ -111,7 +109,6 @@ async function runMigrations(client) {
     END $$
   `);
 
-  // Visits table (created here for fresh installs)
   await client.query(`
     CREATE TABLE IF NOT EXISTS visits (
       id            SERIAL PRIMARY KEY,
@@ -127,6 +124,16 @@ async function runMigrations(client) {
     )
   `);
 
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS diary_entries (
+      id         SERIAL PRIMARY KEY,
+      visit_id   INT         NOT NULL REFERENCES visits(id) ON DELETE CASCADE,
+      entry_date DATE,
+      text       TEXT        NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   if (global.LOG_LEVEL === 'DEBUG') console.debug('DB migration complete');
 }
 
@@ -136,9 +143,7 @@ export const getMapCodes = (type) =>
 // ── Maps ──────────────────────────────────────────────────────────────────────
 
 export const createMap = async (name) => {
-  const result = await pool.query(
-    `INSERT INTO maps (name) VALUES ($1) RETURNING *`, [name]
-  );
+  const result = await pool.query(`INSERT INTO maps (name) VALUES ($1) RETURNING *`, [name]);
   return result.rows[0];
 };
 
@@ -169,14 +174,12 @@ export const deleteMap = async (mapId) => {
 export const getScratchedCountsByMapId = async (mapId) => {
   const result = await pool.query(`
     SELECT s.map_type, COUNT(DISTINCT s.id)::int AS count
-    FROM scratched s
-    WHERE s.map_id = $1
+    FROM scratched s WHERE s.map_id = $1
     GROUP BY s.map_type
   `, [mapId]);
   return Object.fromEntries(result.rows.map(r => [r.map_type, r.count]));
 };
 
-// Returns [{code, visits:[{id, trip_name, ...}]}] for a map+type
 export const getScratchedByMapAndType = async (mapId, mapType) => {
   const result = await pool.query(`
     SELECT s.code,
@@ -187,7 +190,15 @@ export const getScratchedByMapAndType = async (mapId, mapType) => {
              'visit_start',   TO_CHAR(v.visit_start, 'YYYY-MM-DD'),
              'visit_end',     TO_CHAR(v.visit_end,   'YYYY-MM-DD'),
              'photo_urls',    v.photo_urls,
-             'documents_url', v.documents_url
+             'documents_url', v.documents_url,
+             'diary_entries', COALESCE(
+               (SELECT json_agg(json_build_object(
+                  'date', TO_CHAR(de.entry_date, 'YYYY-MM-DD'),
+                  'text', de.text
+                ) ORDER BY de.entry_date NULLS LAST, de.id)
+                FROM diary_entries de WHERE de.visit_id = v.id),
+               '[]'::json
+             )
            ) ORDER BY v.visit_start NULLS LAST, v.id) AS visits
     FROM scratched s
     JOIN visits v ON v.scratched_id = s.id
@@ -198,7 +209,6 @@ export const getScratchedByMapAndType = async (mapId, mapType) => {
   return result.rows;
 };
 
-// Add a visit; creates the scratched marker if first visit
 export const addVisit = async (mapId, mapType, code, visitData) => {
   const scratchResult = await pool.query(`
     INSERT INTO scratched (map_id, map_type, code)
@@ -209,23 +219,23 @@ export const addVisit = async (mapId, mapType, code, visitData) => {
 
   const scratchedId = scratchResult.rows[0].id;
 
-  await pool.query(`
+  const visitResult = await pool.query(`
     INSERT INTO visits (scratched_id, trip_name, description, visit_start, visit_end, photo_urls, documents_url)
     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    RETURNING id
   `, [
     scratchedId,
-    visitData.tripName,
-    visitData.description,
-    visitData.visitStart || null,
-    visitData.visitEnd   || null,
-    visitData.photoUrls,
-    visitData.documentsUrl,
+    visitData.tripName, visitData.description,
+    visitData.visitStart || null, visitData.visitEnd || null,
+    visitData.photoUrls, visitData.documentsUrl,
   ]);
+
+  const visitId = visitResult.rows[0].id;
+  await saveDiaryEntries(visitId, visitData.diaryEntries || []);
 
   return getScratchedByMapAndType(mapId, mapType);
 };
 
-// Update an existing visit; verifies ownership via mapId
 export const updateVisit = async (visitId, mapId, visitData) => {
   const check = await pool.query(`
     SELECT s.map_id, s.map_type, s.code
@@ -234,7 +244,7 @@ export const updateVisit = async (visitId, mapId, visitData) => {
   `, [visitId, mapId]);
 
   if (check.rowCount === 0) return null;
-  const { map_id, map_type, code } = check.rows[0];
+  const { map_id, map_type } = check.rows[0];
 
   await pool.query(`
     UPDATE visits
@@ -242,19 +252,17 @@ export const updateVisit = async (visitId, mapId, visitData) => {
         photo_urls = $5, documents_url = $6, updated_at = NOW()
     WHERE id = $7
   `, [
-    visitData.tripName,
-    visitData.description,
-    visitData.visitStart || null,
-    visitData.visitEnd   || null,
-    visitData.photoUrls,
-    visitData.documentsUrl,
+    visitData.tripName, visitData.description,
+    visitData.visitStart || null, visitData.visitEnd || null,
+    visitData.photoUrls, visitData.documentsUrl,
     visitId,
   ]);
+
+  await saveDiaryEntries(visitId, visitData.diaryEntries || []);
 
   return getScratchedByMapAndType(map_id, map_type);
 };
 
-// Delete a visit; also removes scratched marker if last visit
 export const deleteVisit = async (visitId, mapId) => {
   const check = await pool.query(`
     SELECT s.id AS scratched_id, s.map_id, s.map_type, s.code
@@ -267,9 +275,7 @@ export const deleteVisit = async (visitId, mapId) => {
 
   await pool.query(`DELETE FROM visits WHERE id = $1`, [visitId]);
 
-  const remaining = await pool.query(
-    `SELECT id FROM visits WHERE scratched_id = $1`, [scratched_id]
-  );
+  const remaining = await pool.query(`SELECT id FROM visits WHERE scratched_id = $1`, [scratched_id]);
 
   if (remaining.rowCount === 0) {
     await pool.query(`DELETE FROM scratched WHERE id = $1`, [scratched_id]);
@@ -279,3 +285,14 @@ export const deleteVisit = async (visitId, mapId) => {
   const updated = await getScratchedByMapAndType(map_id, map_type);
   return { unscratched: false, mapId: map_id, mapType: map_type, allScratched: updated };
 };
+
+async function saveDiaryEntries(visitId, entries) {
+  await pool.query(`DELETE FROM diary_entries WHERE visit_id = $1`, [visitId]);
+  for (const entry of entries) {
+    if (!entry.text) continue;
+    await pool.query(
+      `INSERT INTO diary_entries (visit_id, entry_date, text) VALUES ($1, $2, $3)`,
+      [visitId, entry.date || null, entry.text]
+    );
+  }
+}
