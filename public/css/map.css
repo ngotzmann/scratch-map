@@ -3,18 +3,18 @@
   display: none;
 }
 
-/* Ocean / map background */
+/* Ocean / map background — medium ocean blue */
 #map-container,
 #svg-map {
-  background-color: #152233;
+  background-color: #1a6e9e;
 }
 
 /* entity paths — unvisited: rich brass-gold (the unscratched foil) */
 .entities g path:not(.label-connector):not(.label-text) {
   fill: #c9982a;
   fill-opacity: 1;
-  stroke: #152233;
-  stroke-opacity: 0.9;
+  stroke: #1a6e9e;
+  stroke-opacity: 0.8;
   stroke-width: 1.2;
   stroke-dasharray: none;
   stroke-linejoin: round;
@@ -28,7 +28,7 @@
   cursor: pointer;
 }
 
-/* visited (scratched): emerald green — revealed! */
+/* ── Visited base color (fallback / non-world maps) ─────────────────────────── */
 .entities g.scratched path:not(.label-connector):not(.label-text) {
   fill: #3daa6a;
 }
@@ -38,7 +38,39 @@
   cursor: pointer;
 }
 
-/* never-visit (disabled): dark muted, greyed out */
+/* ── Visited colors by continent ─────────────────────────────────────────────── */
+
+/* Europe — cornflower blue */
+.entities g.scratched.continent-eu path:not(.label-connector):not(.label-text) { fill: #4a80d4; }
+.entities g.scratched.continent-eu:hover path:not(.label-connector):not(.label-text),
+.entities g.scratched.continent-eu path:hover:not(.label-connector):not(.label-text) { fill: #5a90e4; cursor: pointer; }
+
+/* Asia — saffron orange */
+.entities g.scratched.continent-as path:not(.label-connector):not(.label-text) { fill: #d4703a; }
+.entities g.scratched.continent-as:hover path:not(.label-connector):not(.label-text),
+.entities g.scratched.continent-as path:hover:not(.label-connector):not(.label-text) { fill: #e4804a; cursor: pointer; }
+
+/* Africa — terracotta red */
+.entities g.scratched.continent-af path:not(.label-connector):not(.label-text) { fill: #c94848; }
+.entities g.scratched.continent-af:hover path:not(.label-connector):not(.label-text),
+.entities g.scratched.continent-af path:hover:not(.label-connector):not(.label-text) { fill: #d95858; cursor: pointer; }
+
+/* North America — violet purple */
+.entities g.scratched.continent-na path:not(.label-connector):not(.label-text) { fill: #8b5cd4; }
+.entities g.scratched.continent-na:hover path:not(.label-connector):not(.label-text),
+.entities g.scratched.continent-na path:hover:not(.label-connector):not(.label-text) { fill: #9b6ce4; cursor: pointer; }
+
+/* South America — emerald teal */
+.entities g.scratched.continent-sa path:not(.label-connector):not(.label-text) { fill: #2eb898; }
+.entities g.scratched.continent-sa:hover path:not(.label-connector):not(.label-text),
+.entities g.scratched.continent-sa path:hover:not(.label-connector):not(.label-text) { fill: #3ec8a8; cursor: pointer; }
+
+/* Oceania — cyan turquoise */
+.entities g.scratched.continent-oc path:not(.label-connector):not(.label-text) { fill: #2aacbc; }
+.entities g.scratched.continent-oc:hover path:not(.label-connector):not(.label-text),
+.entities g.scratched.continent-oc path:hover:not(.label-connector):not(.label-text) { fill: #3abccc; cursor: pointer; }
+
+/* ── Never-visit: dark slate, dimmed ────────────────────────────────────────── */
 .entities g.disabled-location path:not(.label-connector):not(.label-text) {
   fill: #4a4a55;
   opacity: 0.6;
@@ -49,34 +81,33 @@
   cursor: pointer;
 }
 
-/* label boxes — match territory fill */
+/* ── Label boxes — match territory fill ─────────────────────────────────────── */
 .entities g .label-box {
   fill: #c9982a;
   fill-opacity: 1;
-  stroke: #152233;
+  stroke: #1a6e9e;
   stroke-width: 1.0;
   stroke-miterlimit: 4;
-  stroke-opacity: 0.9;
+  stroke-opacity: 0.8;
   stroke-dasharray: none;
 }
-.entities g:hover > .label-box {
-  fill: #e8b830;
-  cursor: pointer;
-}
-.entities g.scratched .label-box {
-  fill: #3daa6a;
-}
-.entities g.scratched:hover > .label-box {
-  fill: #4dc47c;
-}
-.entities g.disabled-location .label-box {
-  fill: #4a4a55;
-  opacity: 0.6;
-}
-.entities g.disabled-location:hover > .label-box {
-  fill: #5e5e6e;
-  opacity: 0.8;
-}
+.entities g:hover > .label-box                                            { fill: #e8b830; cursor: pointer; }
+.entities g.scratched .label-box                                          { fill: #3daa6a; }
+.entities g.scratched:hover > .label-box                                  { fill: #4dc47c; }
+.entities g.scratched.continent-eu .label-box                             { fill: #4a80d4; }
+.entities g.scratched.continent-eu:hover > .label-box                     { fill: #5a90e4; }
+.entities g.scratched.continent-as .label-box                             { fill: #d4703a; }
+.entities g.scratched.continent-as:hover > .label-box                     { fill: #e4804a; }
+.entities g.scratched.continent-af .label-box                             { fill: #c94848; }
+.entities g.scratched.continent-af:hover > .label-box                     { fill: #d95858; }
+.entities g.scratched.continent-na .label-box                             { fill: #8b5cd4; }
+.entities g.scratched.continent-na:hover > .label-box                     { fill: #9b6ce4; }
+.entities g.scratched.continent-sa .label-box                             { fill: #2eb898; }
+.entities g.scratched.continent-sa:hover > .label-box                     { fill: #3ec8a8; }
+.entities g.scratched.continent-oc .label-box                             { fill: #2aacbc; }
+.entities g.scratched.continent-oc:hover > .label-box                     { fill: #3abccc; }
+.entities g.disabled-location .label-box                                  { fill: #4a4a55; opacity: 0.6; }
+.entities g.disabled-location:hover > .label-box                          { fill: #5e5e6e; opacity: 0.8; }
 
 /* label text */
 .entities g .label-text, .entities g .label-text path {
@@ -100,7 +131,7 @@
   stroke: none;
 }
 
-/* Default CSS options for World SVG */
+/* World SVG helpers */
 .circlexx { display: none; opacity: 0; }
 .subxx    { display: none; opacity: 0; }
 .coastxx  { stroke-width: 0.2; }

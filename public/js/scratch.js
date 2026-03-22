@@ -4,11 +4,35 @@ var clickingObject = false, draggingObject = false;
 const maxURLLength = 1024;
 const validatorURLOptions = { require_protocol: true };
 
+// ── Continent classification (world map only) ─────────────────────────────────
+
+const CONTINENTS = {
+  eu: ['AL','AD','AT','BY','BE','BA','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IS','IE','IT','XK','LV','LI','LT','LU','MK','MT','MD','MC','ME','NL','NO','PL','PT','RO','SM','RS','SK','SI','ES','SE','CH','UA','GB','VA'],
+  as: ['AF','AM','AZ','BH','BD','BT','BN','KH','CN','GE','IN','ID','IR','IQ','IL','JP','JO','KZ','KW','KG','LA','LB','MY','MV','MN','MM','NP','KP','OM','PK','PS','PH','QA','SA','SG','KR','LK','SY','TW','TJ','TH','TL','TR','TM','AE','UZ','VN','YE'],
+  af: ['DZ','AO','BJ','BW','BF','BI','CM','CV','CF','TD','KM','CD','CG','CI','DJ','EG','GQ','ER','ET','GA','GM','GH','GN','GW','KE','LS','LR','LY','MG','MW','ML','MR','MU','MA','MZ','NA','NE','NG','RW','ST','SN','SL','SO','ZA','SS','SD','SZ','TZ','TG','TN','UG','EH','ZM','ZW'],
+  na: ['AG','BS','BB','BZ','CA','CR','CU','DM','DO','SV','GD','GT','HT','HN','JM','MX','NI','PA','KN','LC','VC','TT','US','GL'],
+  sa: ['AR','BO','BR','CL','CO','EC','GY','PY','PE','SR','UY','VE'],
+  oc: ['AU','FJ','KI','MH','FM','NR','NZ','PW','PG','WS','SB','TO','TV','VU'],
+};
+
+const CODE_TO_CONTINENT = {};
+for (const [continent, codes] of Object.entries(CONTINENTS)) {
+  for (const code of codes) CODE_TO_CONTINENT[code] = continent;
+}
+
+function applyContinentClasses(objects) {
+  for (const obj of objects) {
+    const continent = CODE_TO_CONTINENT[obj.id.toUpperCase()];
+    if (continent) obj.classList.add('continent-' + continent);
+  }
+}
+
 if (validTypes.includes(mapType)) {
   objectClass = document.querySelector('.entities');
   objectGroups = objectClass.querySelectorAll(':scope > g');
 }
 
+if (mapType === 'world') applyContinentClasses(objectGroups);
 renderScratched(objectGroups);
 
 for (let i = 0; i < objectGroups.length; i++) {
