@@ -43,12 +43,14 @@ block content
               tr
                 th Name
                 th Trip
-                th Visit Period
+                th Period
+                th Visits
               each val in typeData[validTypes[i]].scratchedList
                 tr
                   td #{val.name}
-                  td #{val.trip_name}
+                  td #{val.tripName}
                   td #{val.visitPeriod}
+                  td #{val.visitCount}
       - if (validTypes[i+1] !== undefined)
         div.section-column
           button.section-collapsible-button
