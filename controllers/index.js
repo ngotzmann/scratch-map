@@ -16,22 +16,18 @@ import {
 } from '../utils/database.js';
 
 const maxURLLength = 1024;
-const validatorURLOptions = {
-  require_protocol: true
-};
+const maxDescriptionLength = 5000;
+const validatorURLOptions = { require_protocol: true };
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
-// home page — list all named maps
+// home page
 export const getHome = (async (req, res, next) => {
   const maps = await getMaps();
-
-  res.render('index', {
-    title: 'My Maps',
-    maps,
-  });
+  res.render('index', { title: 'My Maps', maps });
 });
 
-// overview for a named map — shows all map types with counts
+// overview for a named map — all map types with counts and detail tables
 export const getMapOverview = (async (req, res, next) => {
   const { mapId } = req.params;
 
@@ -54,7 +50,11 @@ export const getMapOverview = (async (req, res, next) => {
     typeData[type] = {
       name: parseTypeName(type),
       count: counts[type] || 0,
-      scratchedList: scratched.map(s => ({ ...s, name: allCodes[s.code] || s.code })),
+      scratchedList: scratched.map(s => ({
+        ...s,
+        name: allCodes[s.code] || s.code,
+        visitPeriod: [s.visit_start, s.visit_end].filter(Boolean).join(' → '),
+      })),
       unscratchedList: Object.fromEntries(
         Object.entries(allCodes).filter(([code]) => !scratched.find(s => s.code === code))
       ),
@@ -77,7 +77,6 @@ export const getMap = (async (req, res, next) => {
   if (!uuidRegex.test(mapId)) {
     return res.render('error', { status: '404', message: `${req.originalUrl} Not Found` });
   }
-
   if (!validTypes.includes(mapType)) {
     return res.render('error', { status: '404', message: `${req.originalUrl} Not Found` });
   }
@@ -126,7 +125,7 @@ export const getView = (async (req, res, next) => {
   });
 });
 
-// create a new named map
+// create a named map
 export const postCreateMap = (async (req, res, next) => {
   const { name } = req.body;
 
@@ -158,20 +157,18 @@ export const deleteMap = (async (req, res, next) => {
 export const postScratch = (async (req, res, next) => {
   if (global.LOG_LEVEL === 'DEBUG') console.debug(req.body);
 
-  if (Object.keys(req.body).length !== 6) {
-    return res.status(422).json({ status: 422, message: 'Invalid attir length' });
-  }
+  const { mapId, mapType, code, scratch, tripName, description, visitStart, visitEnd, photoUrls, documentsUrl } = req.body;
 
-  const { mapId, mapType, code, scratch, year, url } = req.body;
-
-  if (typeof mapId !== 'string' || typeof mapType !== 'string' || typeof code !== 'string' || typeof scratch !== 'boolean' || typeof year !== 'string' || typeof url !== 'string') {
+  if (typeof mapId !== 'string' || typeof mapType !== 'string' || typeof code !== 'string' ||
+      typeof scratch !== 'boolean' || typeof tripName !== 'string' || typeof description !== 'string' ||
+      typeof visitStart !== 'string' || typeof visitEnd !== 'string' ||
+      !Array.isArray(photoUrls) || typeof documentsUrl !== 'string') {
     return res.status(422).json({ status: 422, message: 'Invalid data type' });
   }
 
   if (!uuidRegex.test(mapId)) {
     return res.status(422).json({ status: 422, message: 'Invalid map ID' });
   }
-
   if (!validTypes.includes(mapType)) {
     return res.status(422).json({ status: 422, message: 'Invalid map type' });
   }
@@ -183,14 +180,34 @@ export const postScratch = (async (req, res, next) => {
 
   if (code.length < 1 || code.length > 3) {
     return res.status(422).json({ status: 422, message: 'Invalid code length' });
-  } else if (year.length > 6) {
-    return res.status(422).json({ status: 422, message: 'Invalid year length' });
-  } else if (year.length > 0 && !isValidYear(year)) {
-    return res.status(422).json({ status: 422, message: 'Invalid year' });
-  } else if (url.length > maxURLLength) {
-    return res.status(422).json({ status: 422, message: 'Invalid url length' });
-  } else if (url.length > 0 && !validator.isURL(url, validatorURLOptions)) {
-    return res.status(422).json({ status: 422, message: 'Invalid url' });
+  }
+  if (tripName.length > 255) {
+    return res.status(422).json({ status: 422, message: 'Trip name too long' });
+  }
+  if (description.length > maxDescriptionLength) {
+    return res.status(422).json({ status: 422, message: 'Description too long' });
+  }
+  if (visitStart && !dateRegex.test(visitStart)) {
+    return res.status(422).json({ status: 422, message: 'Invalid start date' });
+  }
+  if (visitEnd && !dateRegex.test(visitEnd)) {
+    return res.status(422).json({ status: 422, message: 'Invalid end date' });
+  }
+
+  for (const url of photoUrls) {
+    if (typeof url !== 'string' || url.length > maxURLLength) {
+      return res.status(422).json({ status: 422, message: 'Invalid photo URL length' });
+    }
+    if (!validator.isURL(url, validatorURLOptions)) {
+      return res.status(422).json({ status: 422, message: 'Invalid photo URL' });
+    }
+  }
+
+  if (documentsUrl.length > maxURLLength) {
+    return res.status(422).json({ status: 422, message: 'Documents URL too long' });
+  }
+  if (documentsUrl && !validator.isURL(documentsUrl, validatorURLOptions)) {
+    return res.status(422).json({ status: 422, message: 'Invalid documents URL' });
   }
 
   const codes = getMapCodes(mapType);
@@ -198,10 +215,12 @@ export const postScratch = (async (req, res, next) => {
     return res.status(422).json({ status: 422, message: 'Invalid object code' });
   }
 
-  const sanitizedUrl = sanitizeInput(url);
+  const sanitizedPhotoUrls = photoUrls.map(u => sanitizeInput(u));
+  const sanitizedDocumentsUrl = sanitizeInput(documentsUrl);
+  const sanitizedTripName = sanitizeInput(tripName);
 
   if (scratch) {
-    await upsertScratch(mapId, mapType, code, year, sanitizedUrl);
+    await upsertScratch(mapId, mapType, code, sanitizedTripName, description, visitStart, visitEnd, sanitizedPhotoUrls, sanitizedDocumentsUrl);
   } else {
     const deleted = await deleteScratch(mapId, mapType, code);
     if (!deleted) {
@@ -217,10 +236,6 @@ export const postScratch = (async (req, res, next) => {
     scratched: returnedScratched
   });
 });
-
-function isValidYear(year) {
-  return /^(0|[1-9]\d*)$/.test(year);
-}
 
 function parseTypeName(name) {
   return name

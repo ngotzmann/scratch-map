@@ -42,14 +42,13 @@ block content
             table.section-table
               tr
                 th Name
-                th Year
-                th Link
+                th Trip
+                th Visit Period
               each val in typeData[validTypes[i]].scratchedList
                 tr
                   td #{val.name}
-                  td #{val.year}
-                  td
-                    a(href=val.url target='_blank') !{val.url}
+                  td #{val.trip_name}
+                  td #{val.visitPeriod}
       - if (validTypes[i+1] !== undefined)
         div.section-column
           button.section-collapsible-button
