@@ -204,6 +204,8 @@ function renderVisitDetailView(code, index) {
     <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;background:#fafafa">
       ${backBtn}
       <div style="display:flex;gap:8px;margin-left:auto">
+        <button onclick="openAddFromList('${escHtml(code)}')"
+          style="padding:6px 16px;background:#4d9e1b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500">+ Add Visit</button>
         <button onclick="openEditVisit(${visit.id}, '${escHtml(code)}')"
           style="padding:6px 16px;background:#555;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500">Edit</button>
         <button onclick="openDeleteVisit(${visit.id}, '${escHtml(code)}')"
@@ -244,41 +246,42 @@ async function showAddVisitForm(code, name) {
     confirmButtonColor: '#4d9e1b',
     denyButtonColor: '#aaa',
     width: 640,
-    preConfirm: collectForm,
+    preConfirm: async () => {
+      const formData = collectForm();
+      if (!formData) return false;
+
+      if (formData.neverVisit) {
+        const resp = await fetch('/disabled', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mapId, mapType, code }),
+        });
+        const data = await resp.json();
+        if (data.status !== 200) { Swal.showValidationMessage(data.message || 'Request failed'); return false; }
+        return { neverVisit: true };
+      }
+
+      const resp = await fetch('/scratch', {
+        method: 'POST',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mapId, mapType, code, ...formData }),
+      });
+      const data = await resp.json();
+      if (data.status !== 201) { Swal.showValidationMessage(data.message || 'Request failed'); return false; }
+      return data;
+    },
   });
 
   if (!result.isConfirmed) return;
 
   if (result.value.neverVisit) {
-    const resp = await fetch('/disabled', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mapId, mapType, code }),
-    });
-    const data = await resp.json();
-    if (data.status === 200) {
-      disabledCodes.push(code.toUpperCase());
-      renderScratched(objectGroups);
-      Toast.fire({ icon: 'success', title: 'Marked as never visit' });
-    } else {
-      Toast.fire({ icon: 'error', title: data.message });
-    }
-    return;
-  }
-
-  const resp = await fetch('/scratch', {
-    method: 'POST',
-    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ mapId, mapType, code, ...result.value }),
-  });
-  const data = await resp.json();
-
-  if (data.status === 201) {
-    scratchedObjects = data.allScratched;
+    disabledCodes.push(code.toUpperCase());
+    renderScratched(objectGroups);
+    Toast.fire({ icon: 'success', title: 'Marked as never visit' });
+  } else {
+    scratchedObjects = result.value.allScratched;
     renderScratched(objectGroups);
     Toast.fire({ icon: 'success', title: 'Visit added!' });
-  } else {
-    Toast.fire({ icon: 'error', title: data.message });
   }
 }
 
@@ -320,7 +323,19 @@ async function showEditVisitForm(visitId, code, name, visit) {
     confirmButtonColor: '#4d9e1b',
     denyButtonColor: '#aaa',
     width: 640,
-    preConfirm: collectForm,
+    preConfirm: async () => {
+      const formData = collectForm();
+      if (!formData) return false;
+
+      const resp = await fetch(`/visits/${visitId}`, {
+        method: 'PUT',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mapId, ...formData }),
+      });
+      const data = await resp.json();
+      if (data.status !== 200) { Swal.showValidationMessage(data.message || 'Request failed'); return false; }
+      return data;
+    },
   });
 
   if (!result.isConfirmed) {
@@ -329,22 +344,11 @@ async function showEditVisitForm(visitId, code, name, visit) {
     return;
   }
 
-  const resp = await fetch(`/visits/${visitId}`, {
-    method: 'PUT',
-    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ mapId, ...result.value }),
-  });
-  const data = await resp.json();
-
-  if (data.status === 200) {
-    scratchedObjects = data.allScratched;
-    renderScratched(objectGroups);
-    Toast.fire({ icon: 'success', title: 'Visit updated!' });
-    const entry = scratchedObjects.find(s => s.code.toUpperCase() === code.toUpperCase());
-    if (entry) await showVisitList(code, name, entry.visits);
-  } else {
-    Toast.fire({ icon: 'error', title: data.message });
-  }
+  scratchedObjects = result.value.allScratched;
+  renderScratched(objectGroups);
+  Toast.fire({ icon: 'success', title: 'Visit updated!' });
+  const entry = scratchedObjects.find(s => s.code.toUpperCase() === code.toUpperCase());
+  if (entry) await showVisitList(code, name, entry.visits);
 }
 
 // ── Delete visit ──────────────────────────────────────────────────────────────
