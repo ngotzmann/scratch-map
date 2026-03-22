@@ -3,91 +3,94 @@
   display: none;
 }
 
-/* entity paths */
+/* Ocean / map background */
+#map-container,
+#svg-map {
+  background-color: #152233;
+}
+
+/* entity paths — unvisited: rich brass-gold (the unscratched foil) */
 .entities g path:not(.label-connector):not(.label-text) {
-  fill:#cca11f;
-  fill-opacity:1;
-  /* borders */
-  stroke:#ffffff;
-  stroke-opacity:1;
-  stroke-width:1.5;
-  stroke-dasharray:none;
-  stroke-linejoin:round;
-  stroke-linecap:round;
+  fill: #c9982a;
+  fill-opacity: 1;
+  stroke: #152233;
+  stroke-opacity: 0.9;
+  stroke-width: 1.2;
+  stroke-dasharray: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
 }
 
-.entities g.not-scratched path {
-  fill: #cca11f;
+/* unvisited hover: brighter gold */
+.entities g:hover path:not(.label-connector):not(.label-text),
+.entities g path:hover:not(.label-connector):not(.label-text) {
+  fill: #e8b830;
+  cursor: pointer;
 }
+
+/* visited (scratched): emerald green — revealed! */
 .entities g.scratched path:not(.label-connector):not(.label-text) {
-  fill: #c2c2c2;
+  fill: #3daa6a;
 }
-
-.entities g:hover, .entities g path:hover:not(.label-connector):not(.label-text),
-.entities g:hover path:not(.label-connector):not(.label-text) {
-  fill: #8f8f8f;
+.entities g.scratched:hover path:not(.label-connector):not(.label-text),
+.entities g.scratched path:hover:not(.label-connector):not(.label-text) {
+  fill: #4dc47c;
   cursor: pointer;
 }
 
-.entities g.scratched:hover, .entities g.scratched path:hover:not(.label-connector):not(.label-text),
-.entities g.scratched:hover path:not(.label-connector):not(.label-text) {
-  fill: #c2c2c2;
-}
-
+/* never-visit (disabled): dark muted, greyed out */
 .entities g.disabled-location path:not(.label-connector):not(.label-text) {
-  fill: #6b6b6b;
-  opacity: 0.55;
+  fill: #4a4a55;
+  opacity: 0.6;
 }
-.entities g.disabled-location .label-box {
-  fill: #6b6b6b;
-  opacity: 0.55;
-}
-.entities g.disabled-location:hover path:not(.label-connector):not(.label-text),
-.entities g.disabled-location:hover .label-box {
-  fill: #555;
-  opacity: 0.7;
+.entities g.disabled-location:hover path:not(.label-connector):not(.label-text) {
+  fill: #5e5e6e;
+  opacity: 0.8;
   cursor: pointer;
 }
 
-/* label box */
+/* label boxes — match territory fill */
 .entities g .label-box {
-  fill:#cca11f;
-  fill-opacity:1;
-  stroke:#ffffff;
-  stroke-width:1.25;
-  stroke-miterlimit:4;
-  stroke-opacity:1;
-  stroke-dasharray:none
+  fill: #c9982a;
+  fill-opacity: 1;
+  stroke: #152233;
+  stroke-width: 1.0;
+  stroke-miterlimit: 4;
+  stroke-opacity: 0.9;
+  stroke-dasharray: none;
 }
-.entities g.not-scratched .label-box {
-  fill: #cca11f;
+.entities g:hover > .label-box {
+  fill: #e8b830;
+  cursor: pointer;
 }
 .entities g.scratched .label-box {
-  fill: #c2c2c2;
+  fill: #3daa6a;
 }
-
-.entities g:hover > .label-box {
-  fill: #8f8f8f;
-  cursor: pointer;
+.entities g.scratched:hover > .label-box {
+  fill: #4dc47c;
 }
-.entities g.scratched:hover > rect {
-  fill: #c2c2c2;
+.entities g.disabled-location .label-box {
+  fill: #4a4a55;
+  opacity: 0.6;
+}
+.entities g.disabled-location:hover > .label-box {
+  fill: #5e5e6e;
+  opacity: 0.8;
 }
 
 /* label text */
 .entities g .label-text, .entities g .label-text path {
-  fill:#ffffff;
-  fill-opacity:1;
-  stroke:none;
-  /* text */
-  font-size:20px;
-  font-style:normal;
-  font-variant:normal;
-  font-weight:normal;
-  font-stretch:normal;
-  line-height:125%;
-  letter-spacing:0px;
-  word-spacing:0px;
+  fill: #ffffff;
+  fill-opacity: 1;
+  stroke: none;
+  font-size: 20px;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: normal;
+  font-stretch: normal;
+  line-height: 125%;
+  letter-spacing: 0px;
+  word-spacing: 0px;
   font-family: 'Roboto', Arial, Trebuchet MS, Helvetica, sans-serif;
 }
 
@@ -95,95 +98,13 @@
 .entities g .label-connector {
   fill: #b9b9b9;
   stroke: none;
-  /*stroke: #b9b9b9;
-  stroke-width: 1.25;
-  stroke-linecap: butt;
-  stroke-linejoin: miter;
-  stroke-miterlimit: 4;
-  stroke-opacity: 1;
-  stroke-dasharray: none;*/
 }
-
 
 /* Default CSS options for World SVG */
-/* Circles around small countries and territories */
-.circlexx {
-  display: none;
-	opacity: 0;
-	/*fill: #c0c0c0;
-	stroke: #000000;
-	stroke-width: 0.5;*/
-}
-/* Smaller circles around subnational territories */
-.subxx {
-  display: none;
-	opacity: 0;
-	/*fill: #c0c0c0;
-	stroke: #000000;
-	stroke-width: 0.3;*/
-}
-/* land - all land, as opposed to water, should belong to this class */
-/*.landxx {
-	fill: #c0c0c0;
-	stroke: #ffffff;
-	stroke-width: 0.5;
-	fill-rule: evenodd;
-}*/
-/* coastlines of islands and continents with no borders on them */
-.coastxx {
-	stroke-width: 0.2;
-}
-/* territories without permanent population (the largest of which is Antarctica) */
-.antxx {
-	opacity: 1;
-	/*fill: #c0c0c0;*/
-}
-/* Circles around small countries without permanent population */
-.noxx {
-  display: none;
-	opacity: 0;
-	/*fill: #c0c0c0;
-	stroke: #000000;
-	stroke-width: 0.5;*/
-}
-/* territories with limited or no recognition */
-.limitxx {
-  display: none;
-	opacity: 0;
-	/*fill: #c0c0c0;
-	stroke: #ffffff;
-	stroke-width: 0.2;
-	fill-rule: evenodd;*/
-}
-/* Smaller circles around small territories with limited or no recognition */
-.unxx {
-  display: none;
-	opacity: 0;
-	/*fill: #c0c0c0;
-	stroke: #000000;
-	stroke-width: 0.3;*/
-}
-/* Oceans, seas, and large lakes */
-/*.oceanxx {
-	opacity: 1;
-	fill: #ffffff;
-	stroke: #000000;
-	stroke-width: 0.5;
-}*/
-/* Reserved class names:
-  .eu - for members of European Union
-  .eaeu - for members of Eurasian Economic Union */
-/* Additional style rules
-  The following are examples of colouring countries.
-  These can be substituted with custom styles to colour the countries on the map.
-  Colour a few countries:
-  .gb, .au, .nc {
-    fill: #ff0000;
-  }
-
-  Colour a few small-country circles (along with the countries):
-  .ms, .ky {
-    opacity: 1;
-    fill: #ff0000;
-  }
-*/
+.circlexx { display: none; opacity: 0; }
+.subxx    { display: none; opacity: 0; }
+.coastxx  { stroke-width: 0.2; }
+.antxx    { opacity: 1; }
+.noxx     { display: none; opacity: 0; }
+.limitxx  { display: none; opacity: 0; }
+.unxx     { display: none; opacity: 0; }
