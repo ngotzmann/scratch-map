@@ -57,7 +57,7 @@ export const getMapOverview = (async (req, res, next) => {
         visitCount: s.visits.length,
         // summary from first visit
         tripName:    s.visits[0]?.trip_name || '',
-        visitPeriod: [s.visits[0]?.visit_start, s.visits[0]?.visit_end].filter(Boolean).join(' → '),
+        visitPeriod: [s.visits[0]?.visit_start, s.visits[0]?.visit_end].filter(Boolean).map(d => d.split('-').reverse().join('/')).join(' → '),
       })),
       unscratchedList: Object.fromEntries(
         Object.entries(allCodes).filter(([code]) => !scratched.find(s => s.code === code))

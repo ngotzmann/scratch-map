@@ -94,7 +94,7 @@ function buildVisitCard(visit, code) {
       <div style="margin-top:8px;display:grid;gap:6px">
         ${diaryEntries.map(e => `
           <div style="padding:8px 12px;background:#fafafa;border-left:3px solid #ddd;border-radius:0 4px 4px 0">
-            ${e.date ? `<div style="font-size:11px;color:#aaa;margin-bottom:3px;font-weight:600">${e.date}</div>` : ''}
+            ${e.date ? `<div style="font-size:11px;color:#aaa;margin-bottom:3px;font-weight:600">${formatDate(e.date)}</div>` : ''}
             <div style="font-size:13px;white-space:pre-wrap;color:#333">${escHtml(e.text)}</div>
           </div>`).join('')}
       </div>
@@ -440,10 +440,15 @@ function renderScratched(objects) {
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
+function formatDate(isoStr) {
+  if (!isoStr) return '';
+  return new Date(isoStr + 'T00:00:00').toLocaleDateString();
+}
+
 function formatDateRange(start, end) {
-  if (start && end) return `${start} → ${end}`;
-  if (start) return `from ${start}`;
-  if (end)   return `until ${end}`;
+  if (start && end) return `${formatDate(start)} → ${formatDate(end)}`;
+  if (start) return `from ${formatDate(start)}`;
+  if (end)   return `until ${formatDate(end)}`;
   return '';
 }
 
