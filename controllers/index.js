@@ -11,6 +11,7 @@ import {
   createMap,
   deleteMap as deleteMapRecord,
   setMapPassword,
+  updateMapSettings,
   getScratchedCountsByMapId,
   getScratchedByMapAndType,
   addVisit,
@@ -116,6 +117,7 @@ export const getMap = (async (req, res, next) => {
     scratchedObjects,
     disabledCodes,
     enableShare: global.ENABLE_SHARE,
+    mapColors: parseMapColors(map.settings),
     mapSVG: fs.readFileSync(path.join(global.__rootDir, `/public/images/${mapType}.svg`))
   });
 });
@@ -135,6 +137,7 @@ export const getView = (async (req, res, next) => {
   const scratchedObjects = await getScratchedByMapAndType(mapId, mapType);
   res.render('view', {
     title: map.name, mapType, validTypes, scratchedObjects,
+    mapColors: parseMapColors(map.settings),
     mapSVG: fs.readFileSync(path.join(global.__rootDir, `/public/images/${mapType}.svg`))
   });
 });
@@ -372,6 +375,30 @@ export const deleteDisabled = async (req, res, next) => {
   return res.status(200).json({ status: 200 });
 };
 
+// ── Map settings ─────────────────────────────────────────────────────────────
+
+export const putMapSettings = async (req, res, next) => {
+  const { mapId } = req.params;
+  if (!uuidRegex.test(mapId)) {
+    return res.status(422).json({ status: 422, message: 'Invalid map ID' });
+  }
+  const map = await getMapById(mapId);
+  if (!map) return res.status(404).json({ status: 404, message: 'Map not found' });
+  if (map.password_hash) {
+    const unlockedMaps = req.session?.unlockedMaps || [];
+    if (!unlockedMaps.includes(mapId)) {
+      return res.status(401).json({ status: 401, message: 'Authentication required' });
+    }
+  }
+  const { unvisitedColor, visitedColor, bgColor } = req.body;
+  const settings = {};
+  if (unvisitedColor && hexRe.test(unvisitedColor)) settings.unvisitedColor = unvisitedColor;
+  if (visitedColor   && hexRe.test(visitedColor))   settings.visitedColor   = visitedColor;
+  if (bgColor        && hexRe.test(bgColor))        settings.bgColor        = bgColor;
+  await updateMapSettings(mapId, settings);
+  return res.status(200).json({ status: 200 });
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function validateVisitFields({ mapId, mapType, code, tripName, description, visitStart, visitEnd, photoUrls, documentsUrl, diaryEntries }) {
@@ -404,6 +431,29 @@ function parseTypeName(name) {
 function sanitizeInput(string) {
   const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', "/": '&#x2F;' };
   return string.replace(/[&<>"'/]/ig, m => map[m]);
+}
+
+const hexRe = /^#[0-9a-f]{6}$/i;
+
+function lightenHex(hex, amount = 0.15) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return '#' + [r, g, b].map(c => Math.min(255, Math.round(c + (255 - c) * amount)).toString(16).padStart(2, '0')).join('');
+}
+
+function parseMapColors(settings) {
+  const uv = hexRe.test(settings?.unvisitedColor) ? settings.unvisitedColor : '#c9982a';
+  const v  = hexRe.test(settings?.visitedColor)   ? settings.visitedColor   : '#3daa6a';
+  const bg = hexRe.test(settings?.bgColor)         ? settings.bgColor        : '#0a0a0a';
+  return {
+    unvisited:      uv,
+    unvisitedHover: lightenHex(uv),
+    visited:        v,
+    visitedHover:   lightenHex(v),
+    bg,
+    customVisited:  !!settings?.visitedColor,
+  };
 }
 
 function safeRedirectUrl(url, fallback) {

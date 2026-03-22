@@ -6,6 +6,23 @@ block content
     include ../public/css/map.css
 
   style.
+    :root {
+      --color-unvisited:       !{mapColors.unvisited};
+      --color-unvisited-hover: !{mapColors.unvisitedHover};
+      --color-visited:         !{mapColors.visited};
+      --color-visited-hover:   !{mapColors.visitedHover};
+      --color-bg:              !{mapColors.bg};
+    }
+
+  if mapColors.customVisited
+    style.
+      .entities g.scratched path:not(.label-connector):not(.label-text),
+      .entities g.scratched:hover path:not(.label-connector):not(.label-text),
+      .entities g.scratched path:hover:not(.label-connector):not(.label-text) { fill: var(--color-visited) !important; }
+      .entities g.scratched .label-box,
+      .entities g.scratched:hover > .label-box { fill: var(--color-visited) !important; }
+
+  style.
     .entities g:hover, .entities g path:hover:not(.label-connector):not(.label-text),
     .entities g:hover path:not(.label-connector):not(.label-text) {
       fill: #8f8f8f;

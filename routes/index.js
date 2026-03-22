@@ -9,6 +9,7 @@ import {
   getLockPage,
   postMapAuth,
   postSetPassword,
+  putMapSettings,
   requireMapAuth,
   postCreateMap,
   deleteMap,
@@ -23,6 +24,7 @@ router.get('/', getHome);
 router.get('/lock/:mapId', getLockPage);
 router.post('/maps/:mapId/auth', postMapAuth);
 router.post('/maps/:mapId/password', postSetPassword);
+router.put('/maps/:mapId/settings', requireMapAuth, putMapSettings);
 router.post('/maps', postCreateMap);
 router.delete('/maps/:mapId', requireMapAuth, deleteMap);
 router.get('/map/:mapId', requireMapAuth, getMapOverview);

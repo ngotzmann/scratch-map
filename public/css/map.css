@@ -1,19 +1,27 @@
+:root {
+  --color-unvisited:       #c9982a;
+  --color-unvisited-hover: #e8b830;
+  --color-visited:         #3daa6a;
+  --color-visited-hover:   #4dc47c;
+  --color-bg:              #0a0a0a;
+}
+
 /* bodies of water */
 .water {
   display: none;
 }
 
-/* Ocean / map background — medium ocean blue */
+/* Ocean / map background */
 #map-container,
 #svg-map {
-  background-color: #0a0a0a;
+  background-color: var(--color-bg);
 }
 
-/* entity paths — unvisited: rich brass-gold (the unscratched foil) */
+/* entity paths — unvisited */
 .entities g path:not(.label-connector):not(.label-text) {
-  fill: #c9982a;
+  fill: var(--color-unvisited);
   fill-opacity: 1;
-  stroke: #0a0a0a;
+  stroke: var(--color-bg);
   stroke-opacity: 0.8;
   stroke-width: 1.2;
   stroke-dasharray: none;
@@ -21,20 +29,20 @@
   stroke-linecap: round;
 }
 
-/* unvisited hover: brighter gold */
+/* unvisited hover */
 .entities g:hover path:not(.label-connector):not(.label-text),
 .entities g path:hover:not(.label-connector):not(.label-text) {
-  fill: #e8b830;
+  fill: var(--color-unvisited-hover);
   cursor: pointer;
 }
 
 /* ── Visited base color (fallback / non-world maps) ─────────────────────────── */
 .entities g.scratched path:not(.label-connector):not(.label-text) {
-  fill: #3daa6a;
+  fill: var(--color-visited);
 }
 .entities g.scratched:hover path:not(.label-connector):not(.label-text),
 .entities g.scratched path:hover:not(.label-connector):not(.label-text) {
-  fill: #4dc47c;
+  fill: var(--color-visited-hover);
   cursor: pointer;
 }
 
@@ -83,17 +91,17 @@
 
 /* ── Label boxes — match territory fill ─────────────────────────────────────── */
 .entities g .label-box {
-  fill: #c9982a;
+  fill: var(--color-unvisited);
   fill-opacity: 1;
-  stroke: #0a0a0a;
+  stroke: var(--color-bg);
   stroke-width: 1.0;
   stroke-miterlimit: 4;
   stroke-opacity: 0.8;
   stroke-dasharray: none;
 }
-.entities g:hover > .label-box                                            { fill: #e8b830; cursor: pointer; }
-.entities g.scratched .label-box                                          { fill: #3daa6a; }
-.entities g.scratched:hover > .label-box                                  { fill: #4dc47c; }
+.entities g:hover > .label-box                                            { fill: var(--color-unvisited-hover); cursor: pointer; }
+.entities g.scratched .label-box                                          { fill: var(--color-visited); }
+.entities g.scratched:hover > .label-box                                  { fill: var(--color-visited-hover); }
 .entities g.scratched.continent-eu .label-box                             { fill: #4a80d4; }
 .entities g.scratched.continent-eu:hover > .label-box                     { fill: #5a90e4; }
 .entities g.scratched.continent-as .label-box                             { fill: #d4703a; }

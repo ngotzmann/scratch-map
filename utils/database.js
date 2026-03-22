@@ -53,6 +53,7 @@ async function runMigrations(client) {
   `);
   await client.query(`ALTER TABLE maps DROP COLUMN IF EXISTS map_type`);
   await client.query(`ALTER TABLE maps ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255)`);
+  await client.query(`ALTER TABLE maps ADD COLUMN IF NOT EXISTS settings JSONB NOT NULL DEFAULT '{}'`);
 
   // Drop any legacy scratched table that has a 'year' column
   await client.query(`
@@ -165,6 +166,10 @@ export const createMap = async (name, passwordHash = null) => {
 
 export const setMapPassword = async (mapId, passwordHash) => {
   await pool.query(`UPDATE maps SET password_hash = $1 WHERE id = $2`, [passwordHash, mapId]);
+};
+
+export const updateMapSettings = async (mapId, settings) => {
+  await pool.query(`UPDATE maps SET settings = $1 WHERE id = $2`, [JSON.stringify(settings), mapId]);
 };
 
 export const getMaps = async () => {
