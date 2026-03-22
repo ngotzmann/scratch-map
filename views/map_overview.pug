@@ -1,0 +1,101 @@
+extends layout
+
+block content
+
+  h1#title #{title}
+
+  div#overview-controls
+    a#back-link(href='/') ← Back
+
+  div#map-section
+    - for (var i = 0; i < validTypes.length; i++)
+      div.map-box
+        a.map-box-link(href=`/map/${mapId}/${validTypes[i]}`)
+          div.map-box-map
+            img.map-box-img(src=`/images/${validTypes[i]}.png`)
+          div.map-box-label #{typeData[validTypes[i]].name}
+          div.map-box-sublabel #{typeData[validTypes[i]].count} visited
+
+  br
+  br
+  br
+
+  - for (var i = 0; i < validTypes.length; i += 2)
+    div.section-row
+      div.section-column
+        button.section-collapsible-button
+          span.section-collapsible-title #{typeData[validTypes[i]].name}
+          span.section-collapsible-icon ╲╱
+        div.section-collapsible-content
+          div.section-inner-column
+            h3.table-title Not-Visited (#{Object.keys(typeData[validTypes[i]].unscratchedList).length})
+            table.section-table
+              tr
+                th Name
+                th Code
+              each name, code in typeData[validTypes[i]].unscratchedList
+                tr
+                  td #{name}
+                  td #{code}
+          div.section-inner-column
+            h3.table-title Visited (#{typeData[validTypes[i]].scratchedList.length})
+            table.section-table
+              tr
+                th Name
+                th Year
+                th Link
+              each val in typeData[validTypes[i]].scratchedList
+                tr
+                  td #{val.name}
+                  td #{val.year}
+                  td
+                    a(href=val.url target='_blank') !{val.url}
+      - if (validTypes[i+1] !== undefined)
+        div.section-column
+          button.section-collapsible-button
+            span.section-collapsible-title #{typeData[validTypes[i+1]].name}
+            span.section-collapsible-icon ╲╱
+          div.section-collapsible-content
+            div.section-inner-column
+              h3.table-title Not-Visited (#{Object.keys(typeData[validTypes[i+1]].unscratchedList).length})
+              table.section-table
+                tr
+                  th Name
+                  th Code
+                each name, code in typeData[validTypes[i+1]].unscratchedList
+                  tr
+                    td #{name}
+                    td #{code}
+            div.section-inner-column
+              h3.table-title Visited (#{typeData[validTypes[i+1]].scratchedList.length})
+              table.section-table
+                tr
+                  th Name
+                  th Year
+                  th Link
+                each val in typeData[validTypes[i+1]].scratchedList
+                  tr
+                    td #{val.name}
+                    td #{val.year}
+                    td
+                      a(href=val.url target='_blank') !{val.url}
+
+  script.
+    var collapsibles = document.querySelectorAll('.section-collapsible-button');
+
+    for (let i = 0; i < collapsibles.length; i++) {
+      collapsibles[i].addEventListener('click', function() {
+        var collIcon = this.querySelector('.section-collapsible-icon');
+        var collContent = this.nextElementSibling;
+
+        if (!this.classList.contains('active')) {
+          this.classList.add('active');
+          collIcon.innerHTML = '╱╲';
+          collContent.style.display = 'flex';
+        } else {
+          this.classList.remove('active');
+          collIcon.innerHTML = '╲╱';
+          collContent.style.display = 'none';
+        }
+      });
+    }
