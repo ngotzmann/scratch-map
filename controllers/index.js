@@ -14,6 +14,9 @@ import {
   addVisit,
   updateVisit,
   deleteVisit as deleteVisitRecord,
+  getDisabledByMapAndType,
+  addDisabled,
+  removeDisabled,
 } from '../utils/database.js';
 
 const maxURLLength = 1024;
@@ -46,7 +49,8 @@ export const getMapOverview = (async (req, res, next) => {
   const typeData = {};
   for (const type of validTypes) {
     const scratched = await getScratchedByMapAndType(mapId, type);
-    const allCodes = getMapCodes(type);
+    const disabled  = await getDisabledByMapAndType(mapId, type);
+    const allCodes  = getMapCodes(type);
 
     typeData[type] = {
       name: parseTypeName(type),
@@ -60,7 +64,9 @@ export const getMapOverview = (async (req, res, next) => {
         visitPeriod: [s.visits[0]?.visit_start, s.visits[0]?.visit_end].filter(Boolean).map(d => d.split('-').reverse().join('/')).join(' → '),
       })),
       unscratchedList: Object.fromEntries(
-        Object.entries(allCodes).filter(([code]) => !scratched.find(s => s.code === code))
+        Object.entries(allCodes).filter(([code]) =>
+          !scratched.find(s => s.code === code) && !disabled.includes(code)
+        )
       ),
     };
   }
@@ -80,8 +86,9 @@ export const getMap = (async (req, res, next) => {
     return res.render('error', { status: '404', message: `Map not found` });
   }
 
-  const objectList = getMapCodes(mapType);
+  const objectList      = getMapCodes(mapType);
   const scratchedObjects = await getScratchedByMapAndType(mapId, mapType);
+  const disabledCodes    = await getDisabledByMapAndType(mapId, mapType);
 
   res.render('map', {
     title: map.name,
@@ -90,6 +97,7 @@ export const getMap = (async (req, res, next) => {
     validTypes,
     objectList,
     scratchedObjects,
+    disabledCodes,
     enableShare: global.ENABLE_SHARE,
     mapSVG: fs.readFileSync(path.join(global.__rootDir, `/public/images/${mapType}.svg`))
   });
@@ -211,6 +219,34 @@ export const deleteVisit = (async (req, res, next) => {
 
   return res.status(200).json({ status: 200, ...result });
 });
+
+// ── Disabled locations ────────────────────────────────────────────────────────
+
+export const postDisabled = async (req, res, next) => {
+  const { mapId, mapType, code } = req.body;
+  if (!uuidRegex.test(mapId))        return res.status(422).json({ status: 422, message: 'Invalid map ID' });
+  if (!validTypes.includes(mapType)) return res.status(422).json({ status: 422, message: 'Invalid map type' });
+  if (typeof code !== 'string' || code.length < 1 || code.length > 10) return res.status(422).json({ status: 422, message: 'Invalid code' });
+
+  const map = await getMapById(mapId);
+  if (!map) return res.status(404).json({ status: 404, message: 'Map not found' });
+
+  const codes = getMapCodes(mapType);
+  if (!(code.toUpperCase() in codes)) return res.status(422).json({ status: 422, message: 'Invalid object code' });
+
+  await addDisabled(mapId, mapType, code);
+  return res.status(200).json({ status: 200 });
+};
+
+export const deleteDisabled = async (req, res, next) => {
+  const { mapId, mapType, code } = req.body;
+  if (!uuidRegex.test(mapId))        return res.status(422).json({ status: 422, message: 'Invalid map ID' });
+  if (!validTypes.includes(mapType)) return res.status(422).json({ status: 422, message: 'Invalid map type' });
+  if (typeof code !== 'string' || code.length < 1 || code.length > 10) return res.status(422).json({ status: 422, message: 'Invalid code' });
+
+  await removeDisabled(mapId, mapType, code);
+  return res.status(200).json({ status: 200 });
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

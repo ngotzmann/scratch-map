@@ -11,6 +11,8 @@ import {
   postScratch,
   putVisit,
   deleteVisit,
+  postDisabled,
+  deleteDisabled,
 } from '../controllers/index.js';
 
 router.get('/', getHome);
@@ -22,5 +24,7 @@ if (global.ENABLE_SHARE) router.get('/view/:mapId/:mapType', getView);
 router.post('/scratch', postScratch);
 router.put('/visits/:visitId', putVisit);
 router.delete('/visits/:visitId', deleteVisit);
+router.post('/disabled', postDisabled);
+router.delete('/disabled', deleteDisabled);
 
 export default router;

@@ -31,8 +31,11 @@ async function clickObject(e) {
   const code = e.target.closest('.entities > g').id;
   const name = objectList[code.toUpperCase()] || code;
   const entry = scratchedObjects.find(s => s.code.toUpperCase() === code.toUpperCase());
+  const isDisabled = disabledCodes.some(c => c.toUpperCase() === code.toUpperCase());
 
-  if (!entry) {
+  if (isDisabled) {
+    await showDisabledModal(code, name);
+  } else if (!entry) {
     await showAddVisitForm(code, name);
   } else {
     await showVisitList(code, name, entry.visits);
@@ -73,6 +76,36 @@ function showVisitList(code, name, visits) {
 function closeVisitListModal() {
   const el = document.getElementById('visit-list-overlay');
   if (el) el.remove();
+}
+
+async function showDisabledModal(code, name) {
+  const result = await Swal.fire({
+    title: escHtml(name),
+    html: `<p style="color:#888;font-size:14px;margin-top:6px">Marked as <strong style="color:#555">Never Visit</strong>.</p>`,
+    icon: 'info',
+    showConfirmButton: true,
+    showDenyButton: true,
+    confirmButtonText: 'Remove mark',
+    denyButtonText: 'Close',
+    confirmButtonColor: '#555',
+    denyButtonColor: '#aaa',
+  });
+
+  if (!result.isConfirmed) return;
+
+  const resp = await fetch('/disabled', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mapId, mapType, code }),
+  });
+  const data = await resp.json();
+  if (data.status === 200) {
+    disabledCodes = disabledCodes.filter(c => c.toUpperCase() !== code.toUpperCase());
+    renderScratched(objectGroups);
+    Toast.fire({ icon: 'success', title: 'Mark removed' });
+  } else {
+    Toast.fire({ icon: 'error', title: data.message });
+  }
 }
 
 function renderVisitListView(code, visits) {
@@ -179,7 +212,7 @@ async function showAddVisitForm(code, name) {
 
   const result = await Swal.fire({
     title: `<span style="font-size:18px">Add Visit</span><br><span style="font-size:14px;color:#888;font-weight:400">${escHtml(name)}</span>`,
-    html: buildVisitForm(empty),
+    html: buildVisitForm(empty, true),
     showConfirmButton: true,
     showDenyButton: true,
     confirmButtonText: 'Save',
@@ -191,6 +224,23 @@ async function showAddVisitForm(code, name) {
   });
 
   if (!result.isConfirmed) return;
+
+  if (result.value.neverVisit) {
+    const resp = await fetch('/disabled', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mapId, mapType, code }),
+    });
+    const data = await resp.json();
+    if (data.status === 200) {
+      disabledCodes.push(code.toUpperCase());
+      renderScratched(objectGroups);
+      Toast.fire({ icon: 'success', title: 'Marked as never visit' });
+    } else {
+      Toast.fire({ icon: 'error', title: data.message });
+    }
+    return;
+  }
 
   const resp = await fetch('/scratch', {
     method: 'POST',
@@ -333,7 +383,7 @@ const S = {
   input:   'margin:0;width:100%;box-sizing:border-box',
 };
 
-function buildVisitForm(data) {
+function buildVisitForm(data, allowNeverVisit = false) {
   const photoRows   = data.photoUrls.length > 0 ? data.photoUrls.map(photoUrlRow).join('') : photoUrlRow('');
   const diaryRows   = (data.diaryEntries || []).map(diaryEntryRow).join('');
   const hasNotes    = data.description.length > 0;
@@ -405,6 +455,18 @@ function buildVisitForm(data) {
       </div>
     </details>
 
+    ${allowNeverVisit ? `
+    <details id="d-never-visit" style="${S.details}">
+      <summary style="${S.summary}">Never Visit <span style="color:#ccc;font-size:11px;font-weight:400">optional</span></summary>
+      <div style="padding:12px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:#555;user-select:none">
+          <input type="checkbox" id="f-never-visit" style="width:16px;height:16px;cursor:pointer;accent-color:#c0392b">
+          I'll never visit this place
+        </label>
+        <p style="margin-top:8px;font-size:12px;color:#aaa">Marks it on the map as never visit. Other fields will be ignored.</p>
+      </div>
+    </details>` : ''}
+
   </div>`;
 }
 
@@ -471,18 +533,22 @@ function collectForm() {
     Swal.showValidationMessage('Invalid documents URL'); return false;
   }
 
-  return { tripName, description, visitStart, visitEnd, photoUrls, documentsUrl, diaryEntries };
+  const neverVisit = document.getElementById('f-never-visit')?.checked || false;
+  return { tripName, description, visitStart, visitEnd, photoUrls, documentsUrl, diaryEntries, neverVisit };
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
 function renderScratched(objects) {
-  for (let i = 0; i < objects.length; i++) objects[i].classList.remove('scratched');
-  for (let i = 0; i < scratchedObjects.length; i++) {
-    for (let j = 0; j < objects.length; j++) {
-      if (scratchedObjects[i].code.toUpperCase() === objects[j].id.toUpperCase()) {
-        objects[j].classList.add('scratched');
-      }
+  for (let i = 0; i < objects.length; i++) objects[i].classList.remove('scratched', 'disabled-location');
+  for (const s of scratchedObjects) {
+    for (const obj of objects) {
+      if (s.code.toUpperCase() === obj.id.toUpperCase()) obj.classList.add('scratched');
+    }
+  }
+  for (const code of disabledCodes) {
+    for (const obj of objects) {
+      if (code.toUpperCase() === obj.id.toUpperCase()) obj.classList.add('disabled-location');
     }
   }
 }

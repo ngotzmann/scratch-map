@@ -34,6 +34,21 @@
   fill: #c2c2c2;
 }
 
+.entities g.disabled-location path:not(.label-connector):not(.label-text) {
+  fill: #6b6b6b;
+  opacity: 0.55;
+}
+.entities g.disabled-location .label-box {
+  fill: #6b6b6b;
+  opacity: 0.55;
+}
+.entities g.disabled-location:hover path:not(.label-connector):not(.label-text),
+.entities g.disabled-location:hover .label-box {
+  fill: #555;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
 /* label box */
 .entities g .label-box {
   fill:#cca11f;

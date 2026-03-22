@@ -134,6 +134,17 @@ async function runMigrations(client) {
     )
   `);
 
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS disabled_locations (
+      id         SERIAL PRIMARY KEY,
+      map_id     UUID          NOT NULL REFERENCES maps(id) ON DELETE CASCADE,
+      map_type   VARCHAR(50)   NOT NULL,
+      code       VARCHAR(10)   NOT NULL,
+      created_at TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+      CONSTRAINT unique_disabled UNIQUE (map_id, map_type, code)
+    )
+  `);
+
   if (global.LOG_LEVEL === 'DEBUG') console.debug('DB migration complete');
 }
 
@@ -284,6 +295,30 @@ export const deleteVisit = async (visitId, mapId) => {
 
   const updated = await getScratchedByMapAndType(map_id, map_type);
   return { unscratched: false, mapId: map_id, mapType: map_type, allScratched: updated };
+};
+
+// ── Disabled locations ────────────────────────────────────────────────────────
+
+export const getDisabledByMapAndType = async (mapId, mapType) => {
+  const result = await pool.query(
+    `SELECT code FROM disabled_locations WHERE map_id = $1 AND map_type = $2`,
+    [mapId, mapType]
+  );
+  return result.rows.map(r => r.code);
+};
+
+export const addDisabled = async (mapId, mapType, code) => {
+  await pool.query(
+    `INSERT INTO disabled_locations (map_id, map_type, code) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+    [mapId, mapType, code.toUpperCase()]
+  );
+};
+
+export const removeDisabled = async (mapId, mapType, code) => {
+  await pool.query(
+    `DELETE FROM disabled_locations WHERE map_id = $1 AND map_type = $2 AND code = $3`,
+    [mapId, mapType, code.toUpperCase()]
+  );
 };
 
 async function saveDiaryEntries(visitId, entries) {
