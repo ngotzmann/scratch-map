@@ -39,88 +39,137 @@ async function clickObject(e) {
   }
 }
 
-// ── Visit list modal ──────────────────────────────────────────────────────────
+// ── Visit list overlay ────────────────────────────────────────────────────────
 
-async function showVisitList(code, name, visits) {
-  await Swal.fire({
-    title: escHtml(name),
-    html: buildVisitListHTML(code, visits),
-    showConfirmButton: false,
-    showDenyButton: true,
-    denyButtonText: 'Close',
-    denyButtonColor: '#777',
-    width: 600,
-  });
+function showVisitList(code, name, visits) {
+  closeVisitListModal();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'visit-list-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+
+  overlay.innerHTML = `
+    <div id="visit-modal-panel" style="background:#fff;border-radius:16px;max-width:620px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,0.25);overflow:hidden">
+      <div style="padding:18px 22px;border-bottom:1px solid #efefef;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:#fafafa">
+        <div style="min-width:0">
+          <div style="font-size:19px;font-weight:700;color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(name)}</div>
+        </div>
+        <button onclick="closeVisitListModal()"
+          style="width:32px;height:32px;background:#eee;border:none;border-radius:50%;cursor:pointer;font-size:17px;color:#666;line-height:1;padding:0;flex-shrink:0;margin-left:12px">✕</button>
+      </div>
+      <div id="visit-modal-body" style="overflow-y:auto;flex:1"></div>
+    </div>`;
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeVisitListModal(); });
+  document.body.appendChild(overlay);
+
+  if (visits.length === 1) {
+    renderVisitDetailView(code, 0);
+  } else {
+    renderVisitListView(code, visits);
+  }
 }
 
-function buildVisitListHTML(code, visits) {
-  const cards = visits.length === 1
-    ? buildVisitCard(visits[0], code)
-    : visits.map((v, i) => `
-        <details class="visit-accordion" style="margin-bottom:8px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden">
-          <summary style="padding:12px 16px;cursor:pointer;background:#f8f8f8;display:flex;justify-content:space-between;align-items:center;list-style:none;user-select:none">
-            <span style="font-weight:600;font-size:14px">${escHtml(v.trip_name || formatDateRange(v.visit_start, v.visit_end) || 'Visit ' + (i + 1))}</span>
-            <span style="color:#aaa;font-size:12px">${formatDateRange(v.visit_start, v.visit_end)}</span>
-          </summary>
-          <div style="padding:14px 16px;background:#fff">
-            ${buildVisitCard(v, code)}
-          </div>
-        </details>`
-      ).join('');
+function closeVisitListModal() {
+  const el = document.getElementById('visit-list-overlay');
+  if (el) el.remove();
+}
 
-  return `
-    <div style="max-height:450px;overflow-y:auto;padding-right:2px;text-align:left">
-      ${cards}
-    </div>
-    <div style="margin-top:14px">
-      <button type="button" onclick="openAddFromList('${escHtml(code)}')"
-        style="padding:7px 18px;background:#4d9e1b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600">
+function renderVisitListView(code, visits) {
+  if (!visits) {
+    const entry = scratchedObjects.find(s => s.code.toUpperCase() === code.toUpperCase());
+    visits = entry ? entry.visits : [];
+  }
+  const body = document.getElementById('visit-modal-body');
+  if (!body) return;
+
+  const rows = visits.map((v, i) => {
+    const period = formatDateRange(v.visit_start, v.visit_end);
+    const label  = v.trip_name || `Visit ${i + 1}`;
+    const sub    = period || (v.description ? v.description.slice(0, 60) + (v.description.length > 60 ? '…' : '') : '');
+    return `
+      <div onclick="renderVisitDetailView('${escHtml(code)}', ${i})"
+        style="display:flex;align-items:center;padding:14px 20px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background .15s"
+        onmouseover="this.style.background='#f6faf3'" onmouseout="this.style.background=''">
+        <div style="width:32px;height:32px;border-radius:50%;background:#e8f4e0;color:#4d9e1b;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:14px">${i + 1}</div>
+        <div style="min-width:0;flex:1">
+          <div style="font-size:14px;font-weight:600;color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(label)}</div>
+          ${sub ? `<div style="font-size:12px;color:#aaa;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(sub)}</div>` : ''}
+        </div>
+        <span style="color:#ccc;font-size:18px;margin-left:12px;flex-shrink:0">›</span>
+      </div>`;
+  }).join('');
+
+  body.innerHTML = `
+    <div>${rows}</div>
+    <div style="padding:16px 20px;border-top:1px solid #f0f0f0">
+      <button onclick="openAddFromList('${escHtml(code)}')"
+        style="width:100%;padding:10px;background:#4d9e1b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600">
         + Add New Visit
       </button>
     </div>`;
 }
 
-function buildVisitCard(visit, code) {
-  const period    = formatDateRange(visit.visit_start, visit.visit_end);
-  const photoHTML = (visit.photo_urls || []).map(u =>
-    `<a href="${escHtml(u)}" target="_blank" style="display:block;word-break:break-all;color:#4d9e1b;font-size:13px">${escHtml(u)}</a>`
+function renderVisitDetailView(code, index) {
+  const entry = scratchedObjects.find(s => s.code.toUpperCase() === code.toUpperCase());
+  if (!entry) return;
+  const visit = entry.visits[index];
+  if (!visit) return;
+
+  const body   = document.getElementById('visit-modal-body');
+  if (!body) return;
+
+  const period       = formatDateRange(visit.visit_start, visit.visit_end);
+  const photoHTML    = (visit.photo_urls || []).map(u =>
+    `<a href="${escHtml(u)}" target="_blank" style="display:block;word-break:break-all;color:#4d9e1b;font-size:13px;margin-bottom:3px">${escHtml(u)}</a>`
   ).join('');
   const diaryEntries = visit.diary_entries || [];
-  const diaryHTML = diaryEntries.length > 0 ? `
-    <details style="margin-top:4px">
-      <summary style="cursor:pointer;color:#888;font-size:13px;user-select:none;list-style:none">
-        Diary (${diaryEntries.length} ${diaryEntries.length === 1 ? 'entry' : 'entries'})
+  const diaryHTML    = diaryEntries.length > 0 ? `
+    <details>
+      <summary style="cursor:pointer;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#aaa;list-style:none;user-select:none">
+        Diary <span style="font-weight:400;text-transform:none;letter-spacing:0">(${diaryEntries.length} ${diaryEntries.length === 1 ? 'entry' : 'entries'})</span>
       </summary>
-      <div style="margin-top:8px;display:grid;gap:6px">
+      <div style="margin-top:10px;display:grid;gap:8px">
         ${diaryEntries.map(e => `
-          <div style="padding:8px 12px;background:#fafafa;border-left:3px solid #ddd;border-radius:0 4px 4px 0">
-            ${e.date ? `<div style="font-size:11px;color:#aaa;margin-bottom:3px;font-weight:600">${formatDate(e.date)}</div>` : ''}
-            <div style="font-size:13px;white-space:pre-wrap;color:#333">${escHtml(e.text)}</div>
+          <div style="padding:10px 14px;background:#f9f9f9;border-left:3px solid #d8ead0;border-radius:0 6px 6px 0">
+            ${e.date ? `<div style="font-size:11px;color:#aaa;margin-bottom:4px;font-weight:700">${formatDate(e.date)}</div>` : ''}
+            <div style="font-size:13px;line-height:1.6;white-space:pre-wrap;color:#333">${escHtml(e.text)}</div>
           </div>`).join('')}
       </div>
     </details>` : '';
 
-  return `
-    <div style="display:grid;gap:8px;font-size:14px">
-      ${visit.trip_name   ? row('Trip',      escHtml(visit.trip_name)) : ''}
-      ${period            ? row('Period',    period) : ''}
-      ${visit.description ? row('Notes',     `<span style="white-space:pre-wrap">${escHtml(visit.description)}</span>`) : ''}
-      ${photoHTML         ? row('Photos',    photoHTML) : ''}
-      ${visit.documents_url ? row('Docs',   `<a href="${escHtml(visit.documents_url)}" target="_blank" style="color:#4d9e1b">Link</a>`) : ''}
-      ${diaryHTML         ? row('',          diaryHTML) : ''}
+  const backBtn = entry.visits.length > 1
+    ? `<button onclick="renderVisitListView('${escHtml(code)}', null)"
+         style="background:none;border:none;cursor:pointer;color:#4d9e1b;font-size:13px;font-weight:600;padding:0;display:flex;align-items:center;gap:4px">‹ All visits</button>`
+    : '';
+
+  body.innerHTML = `
+    <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;background:#fafafa">
+      ${backBtn}
+      <div style="display:flex;gap:8px;margin-left:auto">
+        <button onclick="openEditVisit(${visit.id}, '${escHtml(code)}')"
+          style="padding:6px 16px;background:#555;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500">Edit</button>
+        <button onclick="openDeleteVisit(${visit.id}, '${escHtml(code)}')"
+          style="padding:6px 16px;background:#f54b38;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500">Delete</button>
+      </div>
     </div>
-    <div style="margin-top:12px;display:flex;gap:8px">
-      <button type="button" onclick="openEditVisit(${visit.id}, '${escHtml(code)}')"
-        style="padding:5px 16px;background:#555;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px">Edit</button>
-      <button type="button" onclick="openDeleteVisit(${visit.id}, '${escHtml(code)}')"
-        style="padding:5px 16px;background:#f54b38;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px">Delete</button>
+    <div style="padding:20px;display:grid;gap:16px">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:#1a1a1a">${visit.trip_name ? escHtml(visit.trip_name) : `Visit ${index + 1}`}</div>
+        ${period ? `<div style="font-size:13px;color:#7a9e6a;margin-top:4px;font-weight:500">${period}</div>` : ''}
+      </div>
+      ${visit.description ? detailField('Notes', `<div style="color:#444;white-space:pre-wrap;font-size:14px;line-height:1.7">${escHtml(visit.description)}</div>`) : ''}
+      ${photoHTML         ? detailField('Photos', photoHTML) : ''}
+      ${visit.documents_url ? detailField('Documents', `<a href="${escHtml(visit.documents_url)}" target="_blank" style="color:#4d9e1b;font-size:13px;font-weight:500">Open Link ↗</a>`) : ''}
+      ${diaryHTML ? `<div>${diaryHTML}</div>` : ''}
     </div>`;
 }
 
-function row(label, content) {
-  return label
-    ? `<div><span style="color:#aaa;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px">${label}</span><div style="margin-top:2px">${content}</div></div>`
-    : `<div>${content}</div>`;
+function detailField(label, content) {
+  return `<div>
+    <div style="font-size:11px;color:#aaa;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">${label}</div>
+    ${content}
+  </div>`;
 }
 
 // ── Add visit ─────────────────────────────────────────────────────────────────
@@ -161,7 +210,7 @@ async function showAddVisitForm(code, name) {
 
 function openAddFromList(code) {
   const name = objectList[code.toUpperCase()] || code;
-  Swal.close();
+  closeVisitListModal();
   setTimeout(() => showAddVisitForm(code, name), 80);
 }
 
@@ -172,7 +221,7 @@ function openEditVisit(visitId, code) {
   const visit = entry?.visits.find(v => v.id === visitId);
   if (!visit) return;
   const name = objectList[code.toUpperCase()] || code;
-  Swal.close();
+  closeVisitListModal();
   setTimeout(() => showEditVisitForm(visitId, code, name, visit), 80);
 }
 
@@ -228,7 +277,7 @@ async function showEditVisitForm(visitId, code, name, visit) {
 
 function openDeleteVisit(visitId, code) {
   const name = objectList[code.toUpperCase()] || code;
-  Swal.close();
+  closeVisitListModal();
   setTimeout(() => showDeleteConfirm(visitId, code, name), 80);
 }
 

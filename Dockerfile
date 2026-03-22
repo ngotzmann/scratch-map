@@ -12,8 +12,10 @@ RUN apk update \
 USER node
 WORKDIR $APP_DIR
 
-COPY --chown=node:node . .
+COPY --chown=node:node package.json yarn.lock ./
 
-RUN yarn install
+RUN yarn install --frozen-lockfile
+
+COPY --chown=node:node . .
 
 CMD [ "node", "server.js" ]
