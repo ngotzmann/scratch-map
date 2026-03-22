@@ -6,9 +6,30 @@ services:
     ports:
       - "8080:8080"
     environment:
-      ADDRESS: '0.0.0.0'
-      PORT: 8080
-      DATA_DIR: '/my-data-dir'
-      LOG_LEVEL: 'INFO'
+      ADDRESS:     '0.0.0.0'
+      PORT:        8080
+      PG_HOST:     postgres
+      PG_PORT:     5432
+      PG_DATABASE: scratchmap
+      PG_USER:     scratchmap
+      PG_PASSWORD: changeme
+      LOG_LEVEL:   INFO
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: scratch-map-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       scratchmap
+      POSTGRES_USER:     scratchmap
+      POSTGRES_PASSWORD: changeme
     volumes:
-      - ./data:/my-data-dir
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scratchmap -d scratchmap"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:

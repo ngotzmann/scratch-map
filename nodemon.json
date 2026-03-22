@@ -1,4 +1,3 @@
-{   
-  "ignore": ["data/db.json"],
+{
   "watch": ["*.js", "*.ts", "*.json", ".env"]
 }

@@ -3,11 +3,15 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 global.__rootDir = path.join(__dirname, '..');
-const localDataDir = path.join(__rootDir, '/data');
 
 global.ADDRESS = process.env.ADDRESS || '0.0.0.0';
 global.PORT = process.env.PORT || 3000;
-global.DATA_DIR = process.env.DATA_DIR || process.env.DBLOCATION || localDataDir;
+
+global.PG_HOST     = process.env.PG_HOST     || 'localhost';
+global.PG_PORT     = parseInt(process.env.PG_PORT || '5432', 10);
+global.PG_DATABASE = process.env.PG_DATABASE || 'scratchmap';
+global.PG_USER     = process.env.PG_USER     || 'scratchmap';
+global.PG_PASSWORD = process.env.PG_PASSWORD || '';
 
 // allow LOG_LEVEL to be any case
 if ('LOG_LEVEL' in process.env) {
@@ -45,12 +49,14 @@ if (global.LOG_LEVEL == 'DEBUG') {
   console.debug('globals.js:');
 
   console.debug("  __dirname:", __dirname);
-  console.debug("  global.__rootDir:", global.__rootDir);
-  console.debug("  localDataDir:", localDataDir, "\n");
+  console.debug("  global.__rootDir:", global.__rootDir, "\n");
 
   console.debug("  global.ADDRESS:", global.ADDRESS);
   console.debug("  global.PORT:", global.PORT);
-  console.debug("  global.DATA_DIR:", global.DATA_DIR);
+  console.debug("  global.PG_HOST:", global.PG_HOST);
+  console.debug("  global.PG_PORT:", global.PG_PORT);
+  console.debug("  global.PG_DATABASE:", global.PG_DATABASE);
+  console.debug("  global.PG_USER:", global.PG_USER);
   console.debug("  global.LOG_LEVEL:", global.LOG_LEVEL);
   console.debug("  global.ENABLE_SHARE:", global.ENABLE_SHARE);
 
