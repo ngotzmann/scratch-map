@@ -19,7 +19,10 @@ block content
           a.map-box-link(href=`/map/${map.id}`)
             div.map-box-map
               img.map-box-img(src='/images/world.png')
-            div.map-box-label #{map.name}
+            div.map-box-label
+              if map.is_password_protected
+                span.map-lock-icon(title='Password protected') 🔒&nbsp;
+              | #{map.name}
             div.map-box-sublabel #{map.scratched_count} visited
           button.delete-map-btn(type='button', data-id=`${map.id}`, onclick='deleteMap(event, this)') ✕
 
@@ -29,7 +32,9 @@ block content
         title: 'Create New Map',
         html:
           `<label class="swal2-input-label" for="swal-map-name">Map Name</label>` +
-          `<input id="swal-map-name" class="swal2-input" placeholder="My World Travels" type="text">`,
+          `<input id="swal-map-name" class="swal2-input" placeholder="My World Travels" type="text">` +
+          `<label class="swal2-input-label" for="swal-map-password">Password (optional)</label>` +
+          `<input id="swal-map-password" class="swal2-input" placeholder="Leave blank for no password" type="password">`,
         showConfirmButton: true,
         showDenyButton: true,
         confirmButtonText: 'Create',
@@ -42,7 +47,8 @@ block content
             Swal.showValidationMessage('Map name is required');
             return false;
           }
-          return { name };
+          const password = document.getElementById('swal-map-password').value;
+          return { name, password };
         }
       });
 

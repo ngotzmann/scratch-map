@@ -45,12 +45,14 @@ export const getConnection = () => pool;
 async function runMigrations(client) {
   await client.query(`
     CREATE TABLE IF NOT EXISTS maps (
-      id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      name       VARCHAR(255)  NOT NULL,
-      created_at TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+      id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name          VARCHAR(255)  NOT NULL,
+      created_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+      password_hash VARCHAR(255)
     )
   `);
   await client.query(`ALTER TABLE maps DROP COLUMN IF EXISTS map_type`);
+  await client.query(`ALTER TABLE maps ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255)`);
 
   // Drop any legacy scratched table that has a 'year' column
   await client.query(`
@@ -153,14 +155,22 @@ export const getMapCodes = (type) =>
 
 // ── Maps ──────────────────────────────────────────────────────────────────────
 
-export const createMap = async (name) => {
-  const result = await pool.query(`INSERT INTO maps (name) VALUES ($1) RETURNING *`, [name]);
+export const createMap = async (name, passwordHash = null) => {
+  const result = await pool.query(
+    `INSERT INTO maps (name, password_hash) VALUES ($1, $2) RETURNING *`,
+    [name, passwordHash]
+  );
   return result.rows[0];
+};
+
+export const setMapPassword = async (mapId, passwordHash) => {
+  await pool.query(`UPDATE maps SET password_hash = $1 WHERE id = $2`, [passwordHash, mapId]);
 };
 
 export const getMaps = async () => {
   const result = await pool.query(`
-    SELECT m.id, m.name, m.created_at, COUNT(v.id)::int AS scratched_count
+    SELECT m.id, m.name, m.created_at, COUNT(v.id)::int AS scratched_count,
+           (m.password_hash IS NOT NULL) AS is_password_protected
     FROM maps m
     LEFT JOIN scratched s ON s.map_id = m.id
     LEFT JOIN visits v ON v.scratched_id = s.id

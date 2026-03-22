@@ -224,6 +224,27 @@ html, body {
   margin: 0 auto;
   width: 90%;
   margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#password-btn {
+  padding: 6px 14px;
+  background-color: #555;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+#password-btn:hover {
+  background-color: #333;
+}
+
+.map-lock-icon {
+  font-size: 0.8em;
 }
 
 #back-link {

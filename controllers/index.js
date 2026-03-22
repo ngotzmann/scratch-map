@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from "path";
 import validator from 'validator';
+import bcrypt from 'bcryptjs';
 
 import {
   validTypes,
@@ -9,6 +10,7 @@ import {
   getMapById,
   createMap,
   deleteMap as deleteMapRecord,
+  setMapPassword,
   getScratchedCountsByMapId,
   getScratchedByMapAndType,
   addVisit,
@@ -24,6 +26,21 @@ const maxDescriptionLength = 5000;
 const validatorURLOptions = { require_protocol: true };
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+// ── Auth middleware ────────────────────────────────────────────────────────────
+
+export const requireMapAuth = async (req, res, next) => {
+  const { mapId } = req.params;
+  if (!uuidRegex.test(mapId)) return next();
+  const map = await getMapById(mapId);
+  if (!map || !map.password_hash) return next();
+  const unlockedMaps = req.session?.unlockedMaps || [];
+  if (unlockedMaps.includes(mapId)) return next();
+  if (req.method !== 'GET') {
+    return res.status(401).json({ status: 401, message: 'Authentication required' });
+  }
+  return res.redirect(`/lock/${mapId}?redirect=${encodeURIComponent(req.originalUrl)}`);
+};
 
 // ── Pages ─────────────────────────────────────────────────────────────────────
 
@@ -71,7 +88,7 @@ export const getMapOverview = (async (req, res, next) => {
     };
   }
 
-  res.render('map_overview', { title: map.name, mapId, validTypes, parseTypeName, typeData });
+  res.render('map_overview', { title: map.name, mapId, validTypes, parseTypeName, typeData, isPasswordProtected: !!map.password_hash });
 });
 
 export const getMap = (async (req, res, next) => {
@@ -122,14 +139,91 @@ export const getView = (async (req, res, next) => {
   });
 });
 
+// ── Lock / password pages ─────────────────────────────────────────────────────
+
+export const getLockPage = async (req, res, next) => {
+  const { mapId } = req.params;
+  if (!uuidRegex.test(mapId)) {
+    return res.render('error', { status: '404', message: 'Not Found' });
+  }
+  const map = await getMapById(mapId);
+  if (!map) return res.render('error', { status: '404', message: 'Map not found' });
+  const redirect = safeRedirectUrl(req.query.redirect, `/map/${mapId}`);
+  if (!map.password_hash) return res.redirect(redirect);
+  res.render('lock', { title: map.name, mapId, redirect, error: null });
+};
+
+export const postMapAuth = async (req, res, next) => {
+  const { mapId } = req.params;
+  if (!uuidRegex.test(mapId)) {
+    return res.render('error', { status: '404', message: 'Not Found' });
+  }
+  const map = await getMapById(mapId);
+  if (!map) return res.render('error', { status: '404', message: 'Map not found' });
+  const { password, redirect } = req.body;
+  const dest = safeRedirectUrl(redirect, `/map/${mapId}`);
+  if (!map.password_hash) return res.redirect(dest);
+  const valid = await bcrypt.compare(password || '', map.password_hash);
+  if (!valid) {
+    return res.render('lock', { title: map.name, mapId, redirect: dest, error: 'Incorrect password' });
+  }
+  if (!req.session.unlockedMaps) req.session.unlockedMaps = [];
+  if (!req.session.unlockedMaps.includes(mapId)) req.session.unlockedMaps.push(mapId);
+  return res.redirect(dest);
+};
+
+export const postSetPassword = async (req, res, next) => {
+  const { mapId } = req.params;
+  if (!uuidRegex.test(mapId)) {
+    return res.status(422).json({ status: 422, message: 'Invalid map ID' });
+  }
+  const map = await getMapById(mapId);
+  if (!map) return res.status(404).json({ status: 404, message: 'Map not found' });
+  if (map.password_hash) {
+    const unlockedMaps = req.session?.unlockedMaps || [];
+    if (!unlockedMaps.includes(mapId)) {
+      return res.status(401).json({ status: 401, message: 'Authentication required' });
+    }
+  }
+  const { newPassword } = req.body;
+  let hash = null;
+  if (newPassword && typeof newPassword === 'string' && newPassword.length > 0) {
+    if (newPassword.length > 72) {
+      return res.status(422).json({ status: 422, message: 'Password too long (max 72 characters)' });
+    }
+    hash = await bcrypt.hash(newPassword, 12);
+  }
+  await setMapPassword(mapId, hash);
+  if (hash) {
+    if (!req.session.unlockedMaps) req.session.unlockedMaps = [];
+    if (!req.session.unlockedMaps.includes(mapId)) req.session.unlockedMaps.push(mapId);
+  } else {
+    if (req.session.unlockedMaps) {
+      req.session.unlockedMaps = req.session.unlockedMaps.filter(id => id !== mapId);
+    }
+  }
+  return res.status(200).json({ status: 200, passwordSet: !!hash });
+};
+
 // ── Map CRUD ──────────────────────────────────────────────────────────────────
 
 export const postCreateMap = (async (req, res, next) => {
-  const { name } = req.body;
+  const { name, password } = req.body;
   if (typeof name !== 'string' || name.trim().length === 0 || name.length > 255) {
     return res.status(422).json({ status: 422, message: 'Invalid map name' });
   }
-  const map = await createMap(name.trim());
+  let passwordHash = null;
+  if (password && typeof password === 'string' && password.length > 0) {
+    if (password.length > 72) {
+      return res.status(422).json({ status: 422, message: 'Password too long (max 72 characters)' });
+    }
+    passwordHash = await bcrypt.hash(password, 12);
+  }
+  const map = await createMap(name.trim(), passwordHash);
+  if (passwordHash) {
+    if (!req.session.unlockedMaps) req.session.unlockedMaps = [];
+    req.session.unlockedMaps.push(map.id);
+  }
   return res.status(201).json({ status: 201, mapId: map.id });
 });
 
@@ -137,6 +231,14 @@ export const deleteMap = (async (req, res, next) => {
   const { mapId } = req.params;
   if (!uuidRegex.test(mapId)) {
     return res.status(422).json({ status: 422, message: 'Invalid map ID' });
+  }
+  // requireMapAuth middleware already ran; double-check for direct API calls
+  const mapForAuth = await getMapById(mapId);
+  if (mapForAuth?.password_hash) {
+    const unlockedMaps = req.session?.unlockedMaps || [];
+    if (!unlockedMaps.includes(mapId)) {
+      return res.status(401).json({ status: 401, message: 'Authentication required' });
+    }
   }
   const deleted = await deleteMapRecord(mapId);
   if (!deleted) return res.status(404).json({ status: 404, message: 'Map not found' });
@@ -156,6 +258,13 @@ export const postScratch = (async (req, res, next) => {
 
   const map = await getMapById(mapId);
   if (!map) return res.status(404).json({ status: 404, message: 'Map not found' });
+
+  if (map.password_hash) {
+    const unlockedMaps = req.session?.unlockedMaps || [];
+    if (!unlockedMaps.includes(mapId)) {
+      return res.status(401).json({ status: 401, message: 'Authentication required' });
+    }
+  }
 
   const codes = getMapCodes(mapType);
   if (!(code.toUpperCase() in codes)) {
@@ -231,6 +340,13 @@ export const postDisabled = async (req, res, next) => {
   const map = await getMapById(mapId);
   if (!map) return res.status(404).json({ status: 404, message: 'Map not found' });
 
+  if (map.password_hash) {
+    const unlockedMaps = req.session?.unlockedMaps || [];
+    if (!unlockedMaps.includes(mapId)) {
+      return res.status(401).json({ status: 401, message: 'Authentication required' });
+    }
+  }
+
   const codes = getMapCodes(mapType);
   if (!(code.toUpperCase() in codes)) return res.status(422).json({ status: 422, message: 'Invalid object code' });
 
@@ -243,6 +359,14 @@ export const deleteDisabled = async (req, res, next) => {
   if (!uuidRegex.test(mapId))        return res.status(422).json({ status: 422, message: 'Invalid map ID' });
   if (!validTypes.includes(mapType)) return res.status(422).json({ status: 422, message: 'Invalid map type' });
   if (typeof code !== 'string' || code.length < 1 || code.length > 10) return res.status(422).json({ status: 422, message: 'Invalid code' });
+
+  const mapForAuth = await getMapById(mapId);
+  if (mapForAuth?.password_hash) {
+    const unlockedMaps = req.session?.unlockedMaps || [];
+    if (!unlockedMaps.includes(mapId)) {
+      return res.status(401).json({ status: 401, message: 'Authentication required' });
+    }
+  }
 
   await removeDisabled(mapId, mapType, code);
   return res.status(200).json({ status: 200 });
@@ -280,4 +404,11 @@ function parseTypeName(name) {
 function sanitizeInput(string) {
   const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', "/": '&#x2F;' };
   return string.replace(/[&<>"'/]/ig, m => map[m]);
+}
+
+function safeRedirectUrl(url, fallback) {
+  if (url && typeof url === 'string' && url.startsWith('/') && !url.startsWith('//')) {
+    return url;
+  }
+  return fallback;
 }

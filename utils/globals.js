@@ -7,6 +7,8 @@ global.__rootDir = path.join(__dirname, '..');
 global.ADDRESS = process.env.ADDRESS || '0.0.0.0';
 global.PORT = process.env.PORT || 3000;
 
+global.SESSION_SECRET = process.env.SESSION_SECRET || 'scratch-map-session-secret-change-me';
+
 global.PG_HOST     = process.env.PG_HOST     || 'localhost';
 global.PG_PORT     = parseInt(process.env.PG_PORT || '5432', 10);
 global.PG_DATABASE = process.env.PG_DATABASE || 'scratchmap';

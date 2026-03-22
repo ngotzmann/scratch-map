@@ -1,0 +1,80 @@
+extends layout
+
+block content
+  style.
+    #lock-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: calc(100vh - 120px);
+    }
+    #lock-card {
+      background: white;
+      border-radius: 10px;
+      padding: 36px 40px;
+      width: 360px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+      text-align: center;
+    }
+    #lock-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+    }
+    #lock-card h2 {
+      font-size: 20px;
+      margin-bottom: 6px;
+      color: #222;
+    }
+    #lock-subtitle {
+      font-size: 13px;
+      color: #777;
+      margin-bottom: 24px;
+    }
+    #lock-error {
+      background: #fdecea;
+      color: #c0392b;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    #lock-form input[type="password"] {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      outline: none;
+      box-sizing: border-box;
+    }
+    #lock-form input[type="password"]:focus {
+      border-color: #4d9e1b;
+    }
+    #lock-submit {
+      margin-top: 14px;
+      width: 100%;
+      padding: 10px;
+      background: #4d9e1b;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    #lock-submit:hover {
+      background: #3d7e14;
+    }
+
+  div#lock-wrapper
+    div#lock-card
+      div#lock-icon 🔒
+      h2 #{title}
+      p#lock-subtitle This map is password-protected.
+
+      if error
+        div#lock-error #{error}
+
+      form#lock-form(method='POST', action=`/maps/${mapId}/auth`)
+        input(type='hidden', name='redirect', value=redirect)
+        input(type='password', name='password', placeholder='Enter password', required, autofocus)
+        button#lock-submit(type='submit') Unlock

@@ -3,6 +3,7 @@ import './utils/globals.js'
 import express from 'express';
 import http from 'http';
 import path from 'path';
+import session from 'express-session';
 import { createConnection } from './utils/database.js';
 
 // import express router
@@ -17,6 +18,12 @@ app.set('view engine', 'pug');
 // configure express middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(session({
+  secret: global.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 },
+}));
 app.use(express.static(path.join(global.__rootDir, 'public')));
 
 // use express router

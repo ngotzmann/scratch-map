@@ -1,11 +1,21 @@
 extends layout
 
 block content
+  link(rel='stylesheet', href='/css/sweetalert2.11.26.23.min.css')
+  script(src='/js/sweetalert2.all.11.26.23.min.js', type='text/javascript')
 
-  h1#title #{title}
+  h1#title
+    if isPasswordProtected
+      span(title='Password protected') 🔒&nbsp;
+    | #{title}
 
   div#overview-controls
     a#back-link(href='/') ← Back
+    button#password-btn(type='button', onclick='openPasswordDialog()')
+      if isPasswordProtected
+        | Change Password
+      else
+        | Set Password
 
   div#map-section
     - for (var i = 0; i < validTypes.length; i++)
@@ -80,6 +90,55 @@ block content
                     td #{val.year}
                     td
                       a(href=val.url target='_blank') !{val.url}
+
+  script.
+    var mapId = !{JSON.stringify(mapId)};
+    var isPasswordProtected = !{JSON.stringify(isPasswordProtected)};
+
+    async function openPasswordDialog() {
+      const isProtected = isPasswordProtected;
+      const html = isProtected
+        ? `<label class="swal2-input-label">New Password</label>` +
+          `<input id="swal-new-pw" class="swal2-input" type="password" placeholder="Enter new password">` +
+          `<p style="font-size:12px;color:#888;margin-top:8px;">Leave blank to remove the password.</p>`
+        : `<label class="swal2-input-label">Password</label>` +
+          `<input id="swal-new-pw" class="swal2-input" type="password" placeholder="Enter password">`;
+
+      const result = await Swal.fire({
+        title: isProtected ? 'Change Password' : 'Set Password',
+        html,
+        showConfirmButton: true,
+        showDenyButton: true,
+        confirmButtonText: 'Save',
+        denyButtonText: 'Cancel',
+        confirmButtonColor: '#4d9e1b',
+        denyButtonColor: '#777',
+        preConfirm: () => {
+          const newPassword = document.getElementById('swal-new-pw').value;
+          if (!isProtected && !newPassword) {
+            Swal.showValidationMessage('Password is required');
+            return false;
+          }
+          return { newPassword };
+        }
+      });
+
+      if (result.isConfirmed) {
+        const resp = await fetch(`/maps/${mapId}/password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(result.value)
+        });
+        const data = await resp.json();
+        if (data.status === 200) {
+          const msg = data.passwordSet ? 'Password saved.' : 'Password removed.';
+          await Swal.fire({ title: 'Done', text: msg, icon: 'success', timer: 1500, showConfirmButton: false });
+          window.location.reload();
+        } else {
+          Swal.fire('Error', data.message, 'error');
+        }
+      }
+    }
 
   script.
     var collapsibles = document.querySelectorAll('.section-collapsible-button');
