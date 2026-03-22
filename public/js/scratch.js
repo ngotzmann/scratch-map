@@ -169,7 +169,7 @@ async function clickObject(e) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        'type': mapType,
+        'mapId': mapId,
         'code': object.code,
         'scratch': !scratched ? true : (keepScratched ? true : false),
         'year': saResponse.value.year,

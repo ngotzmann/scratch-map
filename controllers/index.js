@@ -5,8 +5,11 @@ import validator from 'validator';
 import {
   validTypes,
   getMapCodes,
-  getAllScratched,
-  getScratchedByType,
+  getMaps,
+  getMapById,
+  createMap,
+  deleteMap as deleteMapRecord,
+  getScratchedByMapId,
   upsertScratch,
   deleteScratch,
 } from '../utils/database.js';
@@ -15,76 +18,119 @@ const maxURLLength = 1024;
 const validatorURLOptions = {
   require_protocol: true
 };
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// home page
+// home page — list all named maps
 export const getHome = (async (req, res, next) => {
-  const scratched = await getAllScratched();
+  const maps = await getMaps();
 
-  let unscratchedLists = {};
-  for (const type of validTypes) {
-    const codes = getMapCodes(type);
-    unscratchedLists[type] = {};
+  for (const map of maps) {
+    map.mapTypeName = parseTypeName(map.map_type);
+    const scratched = await getScratchedByMapId(map.id);
+    const allCodes = getMapCodes(map.map_type);
 
-    for (const [key, value] of Object.entries(codes)) {
-      if (!scratched[type].find(x => x.code === key)) {
-        unscratchedLists[type][key] = value;
+    map.scratchedList = scratched.map(s => ({
+      ...s,
+      name: allCodes[s.code] || s.code
+    }));
+
+    map.unscratchedList = {};
+    for (const [code, name] of Object.entries(allCodes)) {
+      if (!scratched.find(s => s.code === code)) {
+        map.unscratchedList[code] = name;
       }
-    }
-
-    // attach display names to scratched entries
-    for (const entry of scratched[type]) {
-      entry.name = codes[entry.code] || entry.code;
     }
   }
 
   res.render('index', {
-    title: 'Home',
+    title: 'My Maps',
+    maps,
     validTypes,
     parseTypeName,
-    unscratchedLists,
-    scratchedLists: scratched
   });
 });
 
-// map
+// map editor
 export const getMap = (async (req, res, next) => {
-  const mapType = req.params.mapType;
+  const mapId = req.params.mapId;
 
-  if (!validTypes.includes(mapType)) {
+  if (!uuidRegex.test(mapId)) {
     return res.render('error', { status: '404', message: `${req.originalUrl} Not Found` });
   }
 
-  const objectList = getMapCodes(mapType);
-  const scratchedObjects = await getScratchedByType(mapType);
+  const map = await getMapById(mapId);
+  if (!map) {
+    return res.render('error', { status: '404', message: `Map not found` });
+  }
+
+  const objectList = getMapCodes(map.map_type);
+  const scratchedObjects = await getScratchedByMapId(mapId);
 
   res.render('map', {
-    title: parseTypeName(mapType),
-    mapType,
+    title: map.name,
+    mapId,
+    mapType: map.map_type,
     validTypes,
     objectList,
     scratchedObjects,
     enableShare: global.ENABLE_SHARE,
-    mapSVG: fs.readFileSync(path.join(global.__rootDir, `/public/images/${mapType}.svg`))
+    mapSVG: fs.readFileSync(path.join(global.__rootDir, `/public/images/${map.map_type}.svg`))
   });
 });
 
-// view
+// read-only share view
 export const getView = (async (req, res, next) => {
-  const mapType = req.params.mapType;
+  const mapId = req.params.mapId;
 
-  if (!validTypes.includes(mapType)) {
+  if (!uuidRegex.test(mapId)) {
     return res.render('error', { status: '404', message: `${req.originalUrl} Not Found` });
   }
 
-  const scratchedObjects = await getScratchedByType(mapType);
+  const map = await getMapById(mapId);
+  if (!map) {
+    return res.render('error', { status: '404', message: `Map not found` });
+  }
+
+  const scratchedObjects = await getScratchedByMapId(mapId);
 
   res.render('view', {
-    title: parseTypeName(mapType),
-    mapType,
+    title: map.name,
+    mapType: map.map_type,
     validTypes,
     scratchedObjects,
-    mapSVG: fs.readFileSync(path.join(global.__rootDir, `/public/images/${mapType}.svg`))
+    mapSVG: fs.readFileSync(path.join(global.__rootDir, `/public/images/${map.map_type}.svg`))
   });
+});
+
+// create a new named map
+export const postCreateMap = (async (req, res, next) => {
+  const { name, mapType } = req.body;
+
+  if (typeof name !== 'string' || name.trim().length === 0 || name.length > 255) {
+    return res.status(422).json({ status: 422, message: 'Invalid map name' });
+  }
+  if (!validTypes.includes(mapType)) {
+    return res.status(422).json({ status: 422, message: 'Invalid map type' });
+  }
+
+  const map = await createMap(name.trim(), mapType);
+  return res.status(201).json({ status: 201, mapId: map.id });
+});
+
+// delete a named map
+export const deleteMap = (async (req, res, next) => {
+  const { mapId } = req.params;
+
+  if (!uuidRegex.test(mapId)) {
+    return res.status(422).json({ status: 422, message: 'Invalid map ID' });
+  }
+
+  const deleted = await deleteMapRecord(mapId);
+  if (!deleted) {
+    return res.status(404).json({ status: 404, message: 'Map not found' });
+  }
+
+  return res.status(200).json({ status: 200, message: 'Map deleted' });
 });
 
 // scratch endpoint
@@ -93,42 +139,52 @@ export const postScratch = (async (req, res, next) => {
 
   if (Object.keys(req.body).length !== 5) {
     return res.status(422).json({ status: 422, message: 'Invalid attir length' });
-  } else if (typeof req.body.type !== 'string' || typeof req.body.code !== 'string' || typeof req.body.scratch !== 'boolean' || typeof req.body.year !== 'string' || typeof req.body.url !== 'string') {
+  }
+
+  const { mapId, code, scratch, year, url } = req.body;
+
+  if (typeof mapId !== 'string' || typeof code !== 'string' || typeof scratch !== 'boolean' || typeof year !== 'string' || typeof url !== 'string') {
     return res.status(422).json({ status: 422, message: 'Invalid data type' });
-  } else if (req.body.type.length < 0 || req.body.type.length > 30) {
-    return res.status(422).json({ status: 422, message: 'Invalid object length' });
-  } else if (!validTypes.includes(req.body.type)) {
-    return res.status(422).json({ status: 422, message: 'Invalid object type' });
-  } else if (req.body.code.length < 1 || req.body.code.length > 3) {
+  }
+
+  if (!uuidRegex.test(mapId)) {
+    return res.status(422).json({ status: 422, message: 'Invalid map ID' });
+  }
+
+  const map = await getMapById(mapId);
+  if (!map) {
+    return res.status(404).json({ status: 404, message: 'Map not found' });
+  }
+
+  if (code.length < 1 || code.length > 3) {
     return res.status(422).json({ status: 422, message: 'Invalid code length' });
-  } else if (req.body.year.length < 0 || req.body.year.length > 6) {
+  } else if (year.length > 6) {
     return res.status(422).json({ status: 422, message: 'Invalid year length' });
-  } else if (req.body.year.length > 0 && !isValidYear(req.body.year)) {
+  } else if (year.length > 0 && !isValidYear(year)) {
     return res.status(422).json({ status: 422, message: 'Invalid year' });
-  } else if (req.body.url.length < 0 || req.body.url.length > maxURLLength) {
+  } else if (url.length > maxURLLength) {
     return res.status(422).json({ status: 422, message: 'Invalid url length' });
-  } else if (req.body.url.length > 0 && !validator.isURL(req.body.url, validatorURLOptions)) {
+  } else if (url.length > 0 && !validator.isURL(url, validatorURLOptions)) {
     return res.status(422).json({ status: 422, message: 'Invalid url' });
   }
 
-  const codes = getMapCodes(req.body.type);
-  if (!(req.body.code.toUpperCase() in codes)) {
+  const codes = getMapCodes(map.map_type);
+  if (!(code.toUpperCase() in codes)) {
     return res.status(422).json({ status: 422, message: 'Invalid object code' });
   }
 
-  const sanitizedUrl = sanitizeInput(req.body.url);
-  const { type, code, scratch, year } = req.body;
+  const sanitizedUrl = sanitizeInput(url);
 
   if (scratch) {
-    await upsertScratch(type, code, year, sanitizedUrl);
+    await upsertScratch(mapId, code, year, sanitizedUrl);
   } else {
-    const deleted = await deleteScratch(type, code);
+    const deleted = await deleteScratch(mapId, code);
     if (!deleted) {
       return res.status(422).json({ status: 422, message: `Unable to unscratch ${code.toUpperCase()}` });
     }
   }
 
-  const returnedScratched = await getScratchedByType(type);
+  const returnedScratched = await getScratchedByMapId(mapId);
 
   return res.status(200).json({
     status: 200,

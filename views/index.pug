@@ -1,80 +1,95 @@
 extends layout
 
 block content
+  link(rel='stylesheet', href='/css/sweetalert2.11.26.23.min.css')
+  script(src='/js/sweetalert2.all.11.26.23.min.js', type='text/javascript')
+
+  script.
+    var validTypes = !{JSON.stringify(validTypes)};
 
   h1#title #{title}
 
-  div#map-section
-    - for (var i = 0; i < validTypes.length; i++)
-      a.map-box(href=`/map/${validTypes[i]}`)
-        div.map-box-map
-          img.map-box-img(src=`/images/${validTypes[i]}.png`)
-        div.map-box-label #{parseTypeName(validTypes[i])}
+  div#new-map-section
+    button#new-map-btn(type='button', onclick='openCreateMap()') + New Map
 
-  br
-  br
-  br
+  if maps.length === 0
+    div#empty-state
+      p No maps yet. Click "New Map" to get started!
+  else
+    div#map-section
+      each map in maps
+        div.map-box
+          a.map-box-link(href=`/map/${map.id}`)
+            div.map-box-map
+              img.map-box-img(src=`/images/${map.map_type}.png`)
+            div.map-box-label #{map.name}
+            div.map-box-sublabel #{map.mapTypeName} · #{map.scratched_count} visited
+          button.delete-map-btn(type='button', data-id=`${map.id}`, onclick='deleteMap(event, this)') ✕
 
-  - for (var i = 0; i < validTypes.length; i += 2)
-    - if (i%2 == 0)
+  if maps.length > 0
+    br
+    br
+    br
+
+    - for (var i = 0; i < maps.length; i += 2)
       div.section-row
         div.section-column
           button.section-collapsible-button
-            span.section-collapsible-title #{parseTypeName(validTypes[i])}
+            span.section-collapsible-title #{maps[i].name}
             span.section-collapsible-icon ╲╱
           div.section-collapsible-content
             div.section-inner-column
-              h3.table-title Not-Visited (#{Object.keys(unscratchedLists[validTypes[i]]).length})
+              h3.table-title Not-Visited (#{Object.keys(maps[i].unscratchedList).length})
               table.section-table
                 tr
                   th Name
                   th Code
-                each key, val in unscratchedLists[validTypes[i]]
+                each name, code in maps[i].unscratchedList
                   tr
-                    td #{key}
-                    td #{val}
+                    td #{name}
+                    td #{code}
             div.section-inner-column
-              h3.table-title Visited (#{scratchedLists[validTypes[i]].length})
+              h3.table-title Visited (#{maps[i].scratchedList.length})
               table.section-table
                 tr
                   th Name
                   th Year
                   th Link
-                each val in scratchedLists[validTypes[i]]
+                each val in maps[i].scratchedList
                   tr
                     td #{val.name}
                     td #{val.year}
                     td
                       a(href=val.url target='_blank') !{val.url}
-        - if (validTypes[i+1] !== undefined)
-            div.section-column
-              button.section-collapsible-button
-                span.section-collapsible-title #{parseTypeName(validTypes[i+1])}
-                span.section-collapsible-icon ╲╱
-              div.section-collapsible-content
-                div.section-inner-column
-                  h3.table-title Not-Visited (#{Object.keys(unscratchedLists[validTypes[i+1]]).length})
-                  table.section-table
+        - if (maps[i+1] !== undefined)
+          div.section-column
+            button.section-collapsible-button
+              span.section-collapsible-title #{maps[i+1].name}
+              span.section-collapsible-icon ╲╱
+            div.section-collapsible-content
+              div.section-inner-column
+                h3.table-title Not-Visited (#{Object.keys(maps[i+1].unscratchedList).length})
+                table.section-table
+                  tr
+                    th Name
+                    th Code
+                  each name, code in maps[i+1].unscratchedList
                     tr
-                      th Name
-                      th Code
-                    each key, val in unscratchedLists[validTypes[i+1]]
-                      tr
-                        td #{key}
-                        td #{val}
-                div.section-inner-column
-                  h3.table-title Visited (#{scratchedLists[validTypes[i+1]].length})
-                  table.section-table
+                      td #{name}
+                      td #{code}
+              div.section-inner-column
+                h3.table-title Visited (#{maps[i+1].scratchedList.length})
+                table.section-table
+                  tr
+                    th Name
+                    th Year
+                    th Link
+                  each val in maps[i+1].scratchedList
                     tr
-                      th Name
-                      th Year
-                      th Link
-                    each val in scratchedLists[validTypes[i+1]]
-                      tr
-                        td #{val.name}
-                        td #{val.year}
-                        td
-                          a(href=val.url target='_blank') !{val.url}
+                      td #{val.name}
+                      td #{val.year}
+                      td
+                        a(href=val.url target='_blank') !{val.url}
 
   script.
     var collapsibles = document.querySelectorAll('.section-collapsible-button');
@@ -83,16 +98,88 @@ block content
       collapsibles[i].addEventListener('click', function() {
         var collIcon = this.querySelector('.section-collapsible-icon');
         var collContent = this.nextElementSibling;
-        let collContentStyle = getComputedStyle(collContent);
 
         if (!this.classList.contains('active')) {
           this.classList.add('active');
           collIcon.innerHTML = '╱╲';
           collContent.style.display = 'flex';
-        } else if (this.classList.contains('active')) {
+        } else {
           this.classList.remove('active');
           collIcon.innerHTML = '╲╱';
           collContent.style.display = 'none';
         }
       });
+    }
+
+    async function openCreateMap() {
+      const typeOptions = validTypes.map(t =>
+        `<option value="${t}">${t.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>`
+      ).join('');
+
+      const result = await Swal.fire({
+        title: 'Create New Map',
+        html:
+          `<label class="swal2-input-label" for="swal-map-name">Map Name</label>` +
+          `<input id="swal-map-name" class="swal2-input" placeholder="My World Travels" type="text">` +
+          `<label class="swal2-input-label" for="swal-map-type">Map Type</label>` +
+          `<select id="swal-map-type" class="swal2-input">${typeOptions}</select>`,
+        showConfirmButton: true,
+        showDenyButton: true,
+        confirmButtonText: 'Create',
+        denyButtonText: 'Cancel',
+        confirmButtonColor: '#4d9e1b',
+        denyButtonColor: '#f54b38',
+        preConfirm: () => {
+          const name = document.getElementById('swal-map-name').value.trim();
+          const mapType = document.getElementById('swal-map-type').value;
+          if (!name) {
+            Swal.showValidationMessage('Map name is required');
+            return false;
+          }
+          return { name, mapType };
+        }
+      });
+
+      if (result.isConfirmed) {
+        const resp = await fetch('/maps', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(result.value)
+        });
+        const data = await resp.json();
+        if (data.status === 201) {
+          window.location.href = `/map/${data.mapId}`;
+        } else {
+          Swal.fire('Error', data.message, 'error');
+        }
+      }
+    }
+
+    async function deleteMap(e, btn) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const mapId = btn.dataset.id;
+
+      const result = await Swal.fire({
+        title: 'Delete this map?',
+        text: 'This will permanently delete the map and all scratched data.',
+        icon: 'warning',
+        showConfirmButton: true,
+        showDenyButton: true,
+        confirmButtonText: 'Delete',
+        denyButtonText: 'Cancel',
+        confirmButtonColor: '#f54b38',
+        denyButtonColor: '#777',
+      });
+
+      if (result.isConfirmed) {
+        const resp = await fetch(`/maps/${mapId}`, { method: 'DELETE' });
+        const data = await resp.json();
+        if (data.status === 200) {
+          window.location.reload();
+        } else {
+          Swal.fire('Error', data.message, 'error');
+        }
+      }
     }

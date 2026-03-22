@@ -6,12 +6,16 @@ import {
   getHome,
   getMap,
   getView,
+  postCreateMap,
+  deleteMap,
   postScratch
 } from '../controllers/index.js';
 
 router.get('/', getHome);
-router.get('/map/:mapType', getMap);
-if (global.ENABLE_SHARE) router.get('/view/:mapType', getView);
+router.post('/maps', postCreateMap);
+router.delete('/maps/:mapId', deleteMap);
+router.get('/map/:mapId', getMap);
+if (global.ENABLE_SHARE) router.get('/view/:mapId', getView);
 router.post('/scratch', postScratch);
 
 export default router;

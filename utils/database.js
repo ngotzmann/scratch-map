@@ -44,16 +44,39 @@ export const createConnection = async () => {
 export const getConnection = () => pool;
 
 async function runMigrations(client) {
+  // Named maps table
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS maps (
+      id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name       VARCHAR(255)  NOT NULL,
+      map_type   VARCHAR(50)   NOT NULL,
+      created_at TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  // Drop old scratched table if it has the legacy map_type column
+  await client.query(`
+    DO $$ BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'scratched' AND column_name = 'map_type'
+      ) THEN
+        DROP TABLE scratched;
+      END IF;
+    END $$
+  `);
+
+  // Scratched regions, now scoped to a named map instance
   await client.query(`
     CREATE TABLE IF NOT EXISTS scratched (
       id         SERIAL PRIMARY KEY,
-      map_type   VARCHAR(50)   NOT NULL,
+      map_id     UUID          NOT NULL REFERENCES maps(id) ON DELETE CASCADE,
       code       VARCHAR(10)   NOT NULL,
       year       VARCHAR(10)   NOT NULL DEFAULT '',
       url        VARCHAR(1024) NOT NULL DEFAULT '',
       created_at TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
-      CONSTRAINT unique_map_code UNIQUE (map_type, code)
+      CONSTRAINT unique_map_code UNIQUE (map_id, code)
     )
   `);
 
@@ -63,44 +86,64 @@ async function runMigrations(client) {
 export const getMapCodes = (type) =>
   JSON.parse(fs.readFileSync(path.join(global.__rootDir, `/utils/codes/${type}.json`)));
 
-export const getAllScratched = async () => {
+export const createMap = async (name, mapType) => {
   const result = await pool.query(
-    'SELECT map_type, code, year, url FROM scratched ORDER BY map_type, code'
+    `INSERT INTO maps (name, map_type) VALUES ($1, $2) RETURNING *`,
+    [name, mapType]
   );
-
-  const scratched = Object.fromEntries(validTypes.map(t => [t, []]));
-
-  for (const row of result.rows) {
-    if (scratched[row.map_type] !== undefined) {
-      scratched[row.map_type].push({ code: row.code, year: row.year, url: row.url });
-    }
-  }
-
-  return scratched;
+  return result.rows[0];
 };
 
-export const getScratchedByType = async (type) => {
+export const getMaps = async () => {
+  const result = await pool.query(`
+    SELECT m.id, m.name, m.map_type, m.created_at,
+           COUNT(s.id)::int AS scratched_count
+    FROM maps m
+    LEFT JOIN scratched s ON s.map_id = m.id
+    GROUP BY m.id
+    ORDER BY m.created_at DESC
+  `);
+  return result.rows;
+};
+
+export const getMapById = async (mapId) => {
   const result = await pool.query(
-    'SELECT code, year, url FROM scratched WHERE map_type = $1 ORDER BY code',
-    [type]
+    `SELECT * FROM maps WHERE id = $1`,
+    [mapId]
+  );
+  return result.rows[0] || null;
+};
+
+export const deleteMap = async (mapId) => {
+  const result = await pool.query(
+    `DELETE FROM maps WHERE id = $1`,
+    [mapId]
+  );
+  return result.rowCount;
+};
+
+export const getScratchedByMapId = async (mapId) => {
+  const result = await pool.query(
+    `SELECT code, year, url FROM scratched WHERE map_id = $1 ORDER BY code`,
+    [mapId]
   );
   return result.rows;
 };
 
-export const upsertScratch = async (type, code, year, url) => {
+export const upsertScratch = async (mapId, code, year, url) => {
   await pool.query(
-    `INSERT INTO scratched (map_type, code, year, url)
+    `INSERT INTO scratched (map_id, code, year, url)
      VALUES ($1, $2, $3, $4)
-     ON CONFLICT (map_type, code)
+     ON CONFLICT (map_id, code)
      DO UPDATE SET year = EXCLUDED.year, url = EXCLUDED.url, updated_at = NOW()`,
-    [type, code.toUpperCase(), year, url]
+    [mapId, code.toUpperCase(), year, url]
   );
 };
 
-export const deleteScratch = async (type, code) => {
+export const deleteScratch = async (mapId, code) => {
   const result = await pool.query(
-    'DELETE FROM scratched WHERE map_type = $1 AND code = $2',
-    [type, code.toUpperCase()]
+    `DELETE FROM scratched WHERE map_id = $1 AND code = $2`,
+    [mapId, code.toUpperCase()]
   );
   return result.rowCount;
 };
