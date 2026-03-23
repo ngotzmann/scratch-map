@@ -5,4 +5,4 @@ div.navbar-container
         include ../../public/images/logo.svg
 
       if locals.mapType
-        a.navbar-back-btn(href=`/map/${mapId}`) ← Back
+        a.navbar-back-btn(href=locals.backUrl || `/map/${mapId}`) ← Back

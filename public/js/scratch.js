@@ -76,7 +76,7 @@ async function clickObject(e) {
   const isDisabled = disabledCodes.some(c => c.toUpperCase() === code.toUpperCase());
 
   if (mapType === 'world' && DRILLDOWN_MAPS[code.toUpperCase()]) {
-    window.location.href = `/map/${mapId}/${DRILLDOWN_MAPS[code.toUpperCase()]}`;
+    window.location.href = `/map/${mapId}/${DRILLDOWN_MAPS[code.toUpperCase()]}?from=world`;
     return;
   }
 

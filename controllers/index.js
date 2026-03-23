@@ -123,6 +123,11 @@ export const getMap = (async (req, res, next) => {
   const scratchedObjects = await getScratchedByMapAndType(mapId, mapType);
   const disabledCodes    = await getDisabledByMapAndType(mapId, mapType);
 
+  const from = req.query.from;
+  const backUrl = (from === 'world' && mapType !== 'world')
+    ? `/map/${mapId}/world`
+    : `/map/${mapId}`;
+
   res.render('map', {
     title: map.name,
     mapId,
@@ -133,7 +138,8 @@ export const getMap = (async (req, res, next) => {
     disabledCodes,
     enableShare: global.ENABLE_SHARE,
     mapColors: parseMapColors(map.settings),
-    mapSVG: getSVG(mapType)
+    mapSVG: getSVG(mapType),
+    backUrl,
   });
 });
 

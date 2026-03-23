@@ -273,6 +273,22 @@ export const getScratchedByMapAndType = async (mapId, mapType) => {
   return result.rows;
 };
 
+const SUBMAP_WORLD_CODE = {
+  'united-states-of-america': 'US',
+  'canada':                   'CA',
+  'australia':                'AU',
+  'france':                   'FR',
+  'mexico':                   'MX',
+  'japan':                    'JP',
+  'spain':                    'ES',
+  'united-kingdom':           'GB',
+  'germany':                  'DE',
+  'new-zealand':              'NZ',
+  'brazil':                   'BR',
+  'china':                    'CN',
+  'india':                    'IN',
+};
+
 export const addVisit = async (mapId, mapType, code, visitData) => {
   const client = await pool.connect();
   try {
@@ -300,6 +316,23 @@ export const addVisit = async (mapId, mapType, code, visitData) => {
 
     const visitId = visitResult.rows[0].id;
     await saveDiaryEntries(visitId, visitData.diaryEntries || [], client);
+
+    const worldCode = SUBMAP_WORLD_CODE[mapType];
+    if (worldCode) {
+      const worldScratch = await client.query(`
+        INSERT INTO scratched (map_id, map_type, code)
+        VALUES ($1, 'world', $2)
+        ON CONFLICT (map_id, map_type, code) DO NOTHING
+        RETURNING id
+      `, [mapId, worldCode]);
+
+      if (worldScratch.rowCount > 0) {
+        await client.query(`
+          INSERT INTO visits (scratched_id, photo_urls)
+          VALUES ($1, $2)
+        `, [worldScratch.rows[0].id, []]);
+      }
+    }
 
     await client.query('COMMIT');
   } catch (err) {
