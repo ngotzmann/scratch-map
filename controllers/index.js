@@ -21,6 +21,8 @@ import {
   setMapPassword,
   updateMapSettings,
   getScratchedCountsByMapId,
+  getAllScratchedForOverview,
+  getAllDisabledByMapId,
   getScratchedByMapAndType,
   addVisit,
   updateVisit,
@@ -70,13 +72,18 @@ export const getMapOverview = (async (req, res, next) => {
     return res.render('error', { status: '404', message: `Map not found` });
   }
 
-  const counts = await getScratchedCountsByMapId(mapId);
+  const [counts, allScratched, allDisabled] = await Promise.all([
+    getScratchedCountsByMapId(mapId),
+    getAllScratchedForOverview(mapId),
+    getAllDisabledByMapId(mapId),
+  ]);
 
   const typeData = {};
   for (const type of validTypes) {
-    const scratched = await getScratchedByMapAndType(mapId, type);
-    const disabled  = await getDisabledByMapAndType(mapId, type);
+    const scratched = allScratched[type] || [];
+    const disabled  = allDisabled[type]  || new Set();
     const allCodes  = getMapCodes(type);
+    const scratchedCodes = new Set(scratched.map(s => s.code));
 
     typeData[type] = {
       name: parseTypeName(type),
@@ -85,15 +92,12 @@ export const getMapOverview = (async (req, res, next) => {
       scratchedList: scratched.map(s => ({
         code: s.code,
         name: allCodes[s.code] || s.code,
-        visitCount: s.visits.length,
-        // summary from first visit
-        tripName:    s.visits[0]?.trip_name || '',
-        visitPeriod: [s.visits[0]?.visit_start, s.visits[0]?.visit_end].filter(Boolean).map(d => d.split('-').reverse().join('/')).join(' → '),
+        visitCount: s.visit_count,
+        tripName:    s.trip_name    || '',
+        visitPeriod: [s.visit_start, s.visit_end].filter(Boolean).map(d => d.split('-').reverse().join('/')).join(' → '),
       })),
       unscratchedList: Object.fromEntries(
-        Object.entries(allCodes).filter(([code]) =>
-          !scratched.find(s => s.code === code) && !disabled.includes(code)
-        )
+        Object.entries(allCodes).filter(([code]) => !scratchedCodes.has(code) && !disabled.has(code))
       ),
     };
   }

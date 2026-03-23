@@ -197,6 +197,44 @@ export const deleteMap = async (mapId) => {
 
 // ── Scratched + Visits ────────────────────────────────────────────────────────
 
+export const getAllScratchedForOverview = async (mapId) => {
+  const result = await pool.query(`
+    SELECT s.map_type, s.code,
+           COUNT(v.id)::int                          AS visit_count,
+           MIN(v.trip_name)    FILTER (WHERE v.id = first_v.id) AS trip_name,
+           MIN(TO_CHAR(v.visit_start, 'YYYY-MM-DD')) FILTER (WHERE v.id = first_v.id) AS visit_start,
+           MIN(TO_CHAR(v.visit_end,   'YYYY-MM-DD')) FILTER (WHERE v.id = first_v.id) AS visit_end
+    FROM scratched s
+    JOIN visits v ON v.scratched_id = s.id
+    JOIN LATERAL (
+      SELECT id FROM visits WHERE scratched_id = s.id ORDER BY visit_start NULLS LAST, id LIMIT 1
+    ) first_v ON true
+    WHERE s.map_id = $1
+    GROUP BY s.map_type, s.code, first_v.id
+    ORDER BY s.map_type, s.code
+  `, [mapId]);
+
+  const byType = {};
+  for (const row of result.rows) {
+    if (!byType[row.map_type]) byType[row.map_type] = [];
+    byType[row.map_type].push(row);
+  }
+  return byType;
+};
+
+export const getAllDisabledByMapId = async (mapId) => {
+  const result = await pool.query(
+    `SELECT map_type, code FROM disabled_locations WHERE map_id = $1`,
+    [mapId]
+  );
+  const byType = {};
+  for (const row of result.rows) {
+    if (!byType[row.map_type]) byType[row.map_type] = new Set();
+    byType[row.map_type].add(row.code);
+  }
+  return byType;
+};
+
 export const getScratchedCountsByMapId = async (mapId) => {
   const result = await pool.query(`
     SELECT s.map_type, COUNT(DISTINCT s.id)::int AS count
