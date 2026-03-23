@@ -148,6 +148,9 @@ async function runMigrations(client) {
     )
   `);
 
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_visits_scratched_id     ON visits(scratched_id)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_diary_entries_visit_id  ON diary_entries(visit_id)`);
+
   if (global.LOG_LEVEL === 'DEBUG') console.debug('DB migration complete');
 }
 
