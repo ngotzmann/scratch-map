@@ -4,6 +4,7 @@ var router = express.Router();
 import {
   getHome,
   getMapOverview,
+  getExport,
   getMap,
   getView,
   getLockPage,
@@ -28,6 +29,7 @@ router.put('/maps/:mapId/settings', requireMapAuth, putMapSettings);
 router.post('/maps', postCreateMap);
 router.delete('/maps/:mapId', requireMapAuth, deleteMap);
 router.get('/map/:mapId', requireMapAuth, getMapOverview);
+router.get('/map/:mapId/export', requireMapAuth, getExport);
 router.get('/map/:mapId/:mapType', requireMapAuth, getMap);
 if (global.ENABLE_SHARE) router.get('/view/:mapId/:mapType', getView);
 router.post('/scratch', postScratch);

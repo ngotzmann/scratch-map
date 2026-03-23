@@ -273,6 +273,40 @@ export const getScratchedByMapAndType = async (mapId, mapType) => {
   return result.rows;
 };
 
+export const getAllScratchedForExport = async (mapId) => {
+  const result = await pool.query(`
+    SELECT s.map_type, s.code,
+           json_agg(json_build_object(
+             'trip_name',     v.trip_name,
+             'description',   v.description,
+             'visit_start',   TO_CHAR(v.visit_start, 'YYYY-MM-DD'),
+             'visit_end',     TO_CHAR(v.visit_end,   'YYYY-MM-DD'),
+             'photo_urls',    v.photo_urls,
+             'documents_url', v.documents_url,
+             'diary_entries', COALESCE(
+               (SELECT json_agg(json_build_object(
+                  'date', TO_CHAR(de.entry_date, 'YYYY-MM-DD'),
+                  'text', de.text
+                ) ORDER BY de.entry_date NULLS LAST, de.id)
+                FROM diary_entries de WHERE de.visit_id = v.id),
+               '[]'::json
+             )
+           ) ORDER BY v.visit_start NULLS LAST, v.id) AS visits
+    FROM scratched s
+    JOIN visits v ON v.scratched_id = s.id
+    WHERE s.map_id = $1
+    GROUP BY s.map_type, s.id, s.code
+    ORDER BY s.map_type, s.code
+  `, [mapId]);
+
+  const byType = {};
+  for (const row of result.rows) {
+    if (!byType[row.map_type]) byType[row.map_type] = [];
+    byType[row.map_type].push({ code: row.code, visits: row.visits });
+  }
+  return byType;
+};
+
 const SUBMAP_WORLD_CODE = {
   'united-states-of-america': 'US',
   'canada':                   'CA',

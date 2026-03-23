@@ -23,6 +23,7 @@ import {
   getScratchedCountsByMapId,
   getAllScratchedForOverview,
   getAllDisabledByMapId,
+  getAllScratchedForExport,
   getScratchedByMapAndType,
   addVisit,
   updateVisit,
@@ -105,6 +106,21 @@ export const getMapOverview = (async (req, res, next) => {
   const stats = computeStats(typeData);
 
   res.render('map_overview', { title: map.name, mapId, validTypes, parseTypeName, typeData, stats, isPasswordProtected: !!map.password_hash });
+});
+
+export const getExport = (async (req, res, next) => {
+  const { mapId } = req.params;
+  if (!uuidRegex.test(mapId)) {
+    return res.status(422).json({ status: 422, message: 'Invalid map ID' });
+  }
+  const map = await getMapById(mapId);
+  if (!map) return res.status(404).json({ status: 404, message: 'Map not found' });
+
+  const data = await getAllScratchedForExport(mapId);
+
+  res.setHeader('Content-Disposition', `attachment; filename="scratch-map-export-${mapId}.json"`);
+  res.setHeader('Content-Type', 'application/json');
+  res.send(JSON.stringify({ exportedAt: new Date().toISOString(), mapName: map.name, visits: data }, null, 2));
 });
 
 export const getMap = (async (req, res, next) => {

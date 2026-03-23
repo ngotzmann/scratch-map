@@ -330,6 +330,21 @@ html, body {
   background-color: #333;
 }
 
+#export-btn {
+  padding: 6px 14px;
+  background-color: #4d9e1b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+#export-btn:hover {
+  background-color: #3a7a14;
+}
+
 .map-lock-icon {
   font-size: 0.8em;
 }
