@@ -4,6 +4,24 @@ var clickingObject = false, draggingObject = false;
 const maxURLLength = 1024;
 const validatorURLOptions = { require_protocol: true };
 
+// ── Drilldown map lookup (world map only) ────────────────────────────────────
+
+const DRILLDOWN_MAPS = {
+  US: 'united-states-of-america',
+  CA: 'canada',
+  AU: 'australia',
+  FR: 'france',
+  MX: 'mexico',
+  JP: 'japan',
+  ES: 'spain',
+  GB: 'united-kingdom',
+  DE: 'germany',
+  NZ: 'new-zealand',
+  BR: 'brazil',
+  CN: 'china',
+  IN: 'india',
+};
+
 // ── Continent classification (world map only) ─────────────────────────────────
 
 const CONTINENTS = {
@@ -56,6 +74,11 @@ async function clickObject(e) {
   const name = objectList[code.toUpperCase()] || code;
   const entry = scratchedObjects.find(s => s.code.toUpperCase() === code.toUpperCase());
   const isDisabled = disabledCodes.some(c => c.toUpperCase() === code.toUpperCase());
+
+  if (mapType === 'world' && DRILLDOWN_MAPS[code.toUpperCase()]) {
+    window.location.href = `/map/${mapId}/${DRILLDOWN_MAPS[code.toUpperCase()]}`;
+    return;
+  }
 
   if (isDisabled) {
     await showDisabledModal(code, name);
