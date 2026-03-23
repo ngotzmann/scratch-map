@@ -236,28 +236,40 @@ export const getScratchedByMapAndType = async (mapId, mapType) => {
 };
 
 export const addVisit = async (mapId, mapType, code, visitData) => {
-  const scratchResult = await pool.query(`
-    INSERT INTO scratched (map_id, map_type, code)
-    VALUES ($1, $2, $3)
-    ON CONFLICT (map_id, map_type, code) DO UPDATE SET map_id = EXCLUDED.map_id
-    RETURNING id
-  `, [mapId, mapType, code.toUpperCase()]);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
 
-  const scratchedId = scratchResult.rows[0].id;
+    const scratchResult = await client.query(`
+      INSERT INTO scratched (map_id, map_type, code)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (map_id, map_type, code) DO UPDATE SET map_id = EXCLUDED.map_id
+      RETURNING id
+    `, [mapId, mapType, code.toUpperCase()]);
 
-  const visitResult = await pool.query(`
-    INSERT INTO visits (scratched_id, trip_name, description, visit_start, visit_end, photo_urls, documents_url)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
-    RETURNING id
-  `, [
-    scratchedId,
-    visitData.tripName, visitData.description,
-    visitData.visitStart || null, visitData.visitEnd || null,
-    visitData.photoUrls, visitData.documentsUrl,
-  ]);
+    const scratchedId = scratchResult.rows[0].id;
 
-  const visitId = visitResult.rows[0].id;
-  await saveDiaryEntries(visitId, visitData.diaryEntries || []);
+    const visitResult = await client.query(`
+      INSERT INTO visits (scratched_id, trip_name, description, visit_start, visit_end, photo_urls, documents_url)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id
+    `, [
+      scratchedId,
+      visitData.tripName, visitData.description,
+      visitData.visitStart || null, visitData.visitEnd || null,
+      visitData.photoUrls, visitData.documentsUrl,
+    ]);
+
+    const visitId = visitResult.rows[0].id;
+    await saveDiaryEntries(visitId, visitData.diaryEntries || [], client);
+
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 
   return getScratchedByMapAndType(mapId, mapType);
 };
@@ -336,11 +348,11 @@ export const removeDisabled = async (mapId, mapType, code) => {
   );
 };
 
-async function saveDiaryEntries(visitId, entries) {
-  await pool.query(`DELETE FROM diary_entries WHERE visit_id = $1`, [visitId]);
+async function saveDiaryEntries(visitId, entries, client = pool) {
+  await client.query(`DELETE FROM diary_entries WHERE visit_id = $1`, [visitId]);
   for (const entry of entries) {
     if (!entry.text) continue;
-    await pool.query(
+    await client.query(
       `INSERT INTO diary_entries (visit_id, entry_date, text) VALUES ($1, $2, $3)`,
       [visitId, entry.date || null, entry.text]
     );
