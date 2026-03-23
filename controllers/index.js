@@ -41,13 +41,13 @@ const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
 // ── Auth middleware ────────────────────────────────────────────────────────────
 
-export const requireMapAuth = async (req, res, next) => {
+export const requireMapAuth = async (req, res, _next) => {
   const { mapId } = req.params;
-  if (!uuidRegex.test(mapId)) return next();
+  if (!uuidRegex.test(mapId)) return _next();
   const map = await getMapById(mapId);
-  if (!map || !map.password_hash) return next();
+  if (!map || !map.password_hash) return _next();
   const unlockedMaps = req.session?.unlockedMaps || [];
-  if (unlockedMaps.includes(mapId)) return next();
+  if (unlockedMaps.includes(mapId)) return _next();
   if (req.method !== 'GET') {
     return res.status(401).json({ status: 401, message: 'Authentication required' });
   }
@@ -56,12 +56,12 @@ export const requireMapAuth = async (req, res, next) => {
 
 // ── Pages ─────────────────────────────────────────────────────────────────────
 
-export const getHome = (async (req, res, next) => {
+export const getHome = (async (req, res, _next) => {
   const maps = await getMaps();
   res.render('index', { title: 'My Maps', maps });
 });
 
-export const getMapOverview = (async (req, res, next) => {
+export const getMapOverview = (async (req, res, _next) => {
   const { mapId } = req.params;
 
   if (!uuidRegex.test(mapId)) {
@@ -108,7 +108,7 @@ export const getMapOverview = (async (req, res, next) => {
   res.render('map_overview', { title: map.name, mapId, validTypes, parseTypeName, typeData, stats, isPasswordProtected: !!map.password_hash });
 });
 
-export const getExport = (async (req, res, next) => {
+export const getExport = (async (req, res, _next) => {
   const { mapId } = req.params;
   if (!uuidRegex.test(mapId)) {
     return res.status(422).json({ status: 422, message: 'Invalid map ID' });
@@ -123,7 +123,7 @@ export const getExport = (async (req, res, next) => {
   res.send(JSON.stringify({ exportedAt: new Date().toISOString(), mapName: map.name, visits: data }, null, 2));
 });
 
-export const getMap = (async (req, res, next) => {
+export const getMap = (async (req, res, _next) => {
   const { mapId, mapType } = req.params;
 
   if (!uuidRegex.test(mapId) || !validTypes.includes(mapType)) {
@@ -159,7 +159,7 @@ export const getMap = (async (req, res, next) => {
   });
 });
 
-export const getView = (async (req, res, next) => {
+export const getView = (async (req, res, _next) => {
   const { mapId, mapType } = req.params;
 
   if (!uuidRegex.test(mapId) || !validTypes.includes(mapType)) {
@@ -181,7 +181,7 @@ export const getView = (async (req, res, next) => {
 
 // ── Lock / password pages ─────────────────────────────────────────────────────
 
-export const getLockPage = async (req, res, next) => {
+export const getLockPage = async (req, res, _next) => {
   const { mapId } = req.params;
   if (!uuidRegex.test(mapId)) {
     return res.render('error', { status: '404', message: 'Not Found' });
@@ -193,7 +193,7 @@ export const getLockPage = async (req, res, next) => {
   res.render('lock', { title: map.name, mapId, redirect, error: null });
 };
 
-export const postMapAuth = async (req, res, next) => {
+export const postMapAuth = async (req, res, _next) => {
   const { mapId } = req.params;
   if (!uuidRegex.test(mapId)) {
     return res.render('error', { status: '404', message: 'Not Found' });
@@ -212,7 +212,7 @@ export const postMapAuth = async (req, res, next) => {
   return res.redirect(dest);
 };
 
-export const postSetPassword = async (req, res, next) => {
+export const postSetPassword = async (req, res, _next) => {
   const { mapId } = req.params;
   if (!uuidRegex.test(mapId)) {
     return res.status(422).json({ status: 422, message: 'Invalid map ID' });
@@ -247,7 +247,7 @@ export const postSetPassword = async (req, res, next) => {
 
 // ── Map CRUD ──────────────────────────────────────────────────────────────────
 
-export const postCreateMap = (async (req, res, next) => {
+export const postCreateMap = (async (req, res, _next) => {
   const { name, password } = req.body;
   if (typeof name !== 'string' || name.trim().length === 0 || name.length > 255) {
     return res.status(422).json({ status: 422, message: 'Invalid map name' });
@@ -267,7 +267,7 @@ export const postCreateMap = (async (req, res, next) => {
   return res.status(201).json({ status: 201, mapId: map.id });
 });
 
-export const deleteMap = (async (req, res, next) => {
+export const deleteMap = (async (req, res, _next) => {
   const { mapId } = req.params;
   if (!uuidRegex.test(mapId)) {
     return res.status(422).json({ status: 422, message: 'Invalid map ID' });
@@ -288,7 +288,7 @@ export const deleteMap = (async (req, res, next) => {
 // ── Visit CRUD ────────────────────────────────────────────────────────────────
 
 // POST /scratch — add a visit (creates the scratched marker if needed)
-export const postScratch = (async (req, res, next) => {
+export const postScratch = (async (req, res, _next) => {
   if (global.LOG_LEVEL === 'DEBUG') console.debug(req.body);
 
   const { mapId, mapType, code, tripName, description, visitStart, visitEnd, photoUrls, documentsUrl, diaryEntries } = req.body;
@@ -325,7 +325,7 @@ export const postScratch = (async (req, res, next) => {
 });
 
 // PUT /visits/:visitId — update a visit
-export const putVisit = (async (req, res, next) => {
+export const putVisit = (async (req, res, _next) => {
   const visitId = parseInt(req.params.visitId, 10);
   if (!Number.isFinite(visitId)) {
     return res.status(422).json({ status: 422, message: 'Invalid visit ID' });
@@ -352,7 +352,7 @@ export const putVisit = (async (req, res, next) => {
 });
 
 // DELETE /visits/:visitId — delete a visit (removes scratched marker if last)
-export const deleteVisit = (async (req, res, next) => {
+export const deleteVisit = (async (req, res, _next) => {
   const visitId = parseInt(req.params.visitId, 10);
   if (!Number.isFinite(visitId)) {
     return res.status(422).json({ status: 422, message: 'Invalid visit ID' });
@@ -371,7 +371,7 @@ export const deleteVisit = (async (req, res, next) => {
 
 // ── Disabled locations ────────────────────────────────────────────────────────
 
-export const postDisabled = async (req, res, next) => {
+export const postDisabled = async (req, res, _next) => {
   const { mapId, mapType, code } = req.body;
   if (!uuidRegex.test(mapId))        return res.status(422).json({ status: 422, message: 'Invalid map ID' });
   if (!validTypes.includes(mapType)) return res.status(422).json({ status: 422, message: 'Invalid map type' });
@@ -394,7 +394,7 @@ export const postDisabled = async (req, res, next) => {
   return res.status(200).json({ status: 200 });
 };
 
-export const deleteDisabled = async (req, res, next) => {
+export const deleteDisabled = async (req, res, _next) => {
   const { mapId, mapType, code } = req.body;
   if (!uuidRegex.test(mapId))        return res.status(422).json({ status: 422, message: 'Invalid map ID' });
   if (!validTypes.includes(mapType)) return res.status(422).json({ status: 422, message: 'Invalid map type' });
@@ -414,7 +414,7 @@ export const deleteDisabled = async (req, res, next) => {
 
 // ── Map settings ─────────────────────────────────────────────────────────────
 
-export const putMapSettings = async (req, res, next) => {
+export const putMapSettings = async (req, res, _next) => {
   const { mapId } = req.params;
   if (!uuidRegex.test(mapId)) {
     return res.status(422).json({ status: 422, message: 'Invalid map ID' });

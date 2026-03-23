@@ -30,10 +30,10 @@ app.use(express.static(path.join(global.__rootDir, 'public')));
 app.use('/', indexRouter);
 
 // error handling
-app.use((req, res, next) => {
+app.use((req, res, _next) => {
   res.render('error', { status: '404', message: 'Not Found' });
 });
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error(err.message);
 
   let status = err.status || 500
