@@ -1,5 +1,13 @@
 import fs from 'fs';
 import path from "path";
+
+const svgCache = new Map();
+const getSVG = (mapType) => {
+  if (!svgCache.has(mapType)) {
+    svgCache.set(mapType, fs.readFileSync(path.join(global.__rootDir, `/public/images/${mapType}.svg`)));
+  }
+  return svgCache.get(mapType);
+};
 import validator from 'validator';
 import bcrypt from 'bcryptjs';
 
@@ -121,7 +129,7 @@ export const getMap = (async (req, res, next) => {
     disabledCodes,
     enableShare: global.ENABLE_SHARE,
     mapColors: parseMapColors(map.settings),
-    mapSVG: fs.readFileSync(path.join(global.__rootDir, `/public/images/${mapType}.svg`))
+    mapSVG: getSVG(mapType)
   });
 });
 
@@ -141,7 +149,7 @@ export const getView = (async (req, res, next) => {
   res.render('view', {
     title: map.name, mapType, validTypes, scratchedObjects,
     mapColors: parseMapColors(map.settings),
-    mapSVG: fs.readFileSync(path.join(global.__rootDir, `/public/images/${mapType}.svg`))
+    mapSVG: getSVG(mapType)
   });
 });
 
