@@ -297,7 +297,7 @@ function openAddFromList(code) {
 function openEditVisit(visitId, code) {
   const entry = scratchedObjects.find(s => s.code.toUpperCase() === code.toUpperCase());
   const visit = entry?.visits.find(v => v.id === visitId);
-  if (!visit) return;
+  if (!visit) { Toast.fire({ icon: 'error', title: 'Visit not found' }); return; }
   const name = objectList[code.toUpperCase()] || code;
   closeVisitListModal();
   setTimeout(() => showEditVisitForm(visitId, code, name, visit), 80);
@@ -552,6 +552,9 @@ function collectForm() {
 
   if (tripName.length > 255)    { Swal.showValidationMessage('Trip name too long (max 255)'); return false; }
   if (description.length > 5000){ Swal.showValidationMessage('Description too long (max 5000)'); return false; }
+  for (const entry of diaryEntries) {
+    if (entry.text.length > 5000) { Swal.showValidationMessage('Diary entry too long (max 5000 chars)'); return false; }
+  }
   if (visitStart && !/^\d{4}-\d{2}-\d{2}$/.test(visitStart)) { Swal.showValidationMessage('Invalid start date'); return false; }
   if (visitEnd   && !/^\d{4}-\d{2}-\d{2}$/.test(visitEnd))   { Swal.showValidationMessage('Invalid end date');   return false; }
   for (const url of photoUrls) {
