@@ -5,7 +5,6 @@
 A self-hosted, scratch-off style travel tracker. Mark countries and regions you have visited, log trip details, and watch your map fill up over time.
 
 [![CI](https://github.com/ad3m3r5/scratch-map/actions/workflows/ci.yml/badge.svg)](https://github.com/ad3m3r5/scratch-map/actions/workflows/ci.yml)
-[![Docker Hub](https://img.shields.io/badge/DockerHub-image-blue?logo=docker&style=plastic)](https://hub.docker.com/r/ad3m3r5/scratch-map)
 [![GitHub Container Registry](https://img.shields.io/badge/ghcr.io-image-lightgrey?logo=github&style=plastic)](https://github.com/ad3m3r5/scratch-map/pkgs/container/scratch-map)
 
 ---
@@ -143,9 +142,6 @@ Images are published to both registries on every push to `main`, tagged with `la
 ```
 ghcr.io/ad3m3r5/scratch-map:latest
 ghcr.io/ad3m3r5/scratch-map:sha-<commit>
-
-docker.io/ad3m3r5/scratch-map:latest
-docker.io/ad3m3r5/scratch-map:sha-<commit>
 ```
 
 Architectures: `linux/amd64`, `linux/arm64`, `linux/arm/v7`
