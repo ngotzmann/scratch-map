@@ -17,11 +17,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - app-network
 
   scratch-map:
     build:
       context: .
-      network: host
     container_name: scratch-map-app
     restart: unless-stopped
     depends_on:
@@ -44,6 +45,11 @@ services:
       PG_USER:     scratchmap
       PG_PASSWORD: scratchmap_dev
       LOG_LEVEL:   INFO
+    networks:
+      - app-network
 
 volumes:
   postgres_data:
+
+networks:
+  app-network:

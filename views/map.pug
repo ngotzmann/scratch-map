@@ -107,7 +107,15 @@ block content
         var currentUrl = window.location.href;
         var viewUrl = currentUrl.replace("/map/", "/view/");
         navigator.clipboard.writeText(viewUrl);
-        alert(`View-only URL Copied!\n${viewUrl}`);
+        Swal.fire({
+          toast: true,
+          position: 'top',
+          icon: 'success',
+          title: 'View-only link copied!',
+          showConfirmButton: false,
+          timer: 2500,
+          timerProgressBar: true,
+        });
       }
 
   script.

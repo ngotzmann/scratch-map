@@ -247,8 +247,9 @@ async function showAddVisitForm(code, name) {
     denyButtonColor: '#aaa',
     width: 640,
     preConfirm: async () => {
+      Swal.getConfirmButton().disabled = true;
       const formData = collectForm();
-      if (!formData) return false;
+      if (!formData) { Swal.getConfirmButton().disabled = false; return false; }
 
       if (formData.neverVisit) {
         const resp = await fetch('/disabled', {
@@ -324,8 +325,9 @@ async function showEditVisitForm(visitId, code, name, visit) {
     denyButtonColor: '#aaa',
     width: 640,
     preConfirm: async () => {
+      Swal.getConfirmButton().disabled = true;
       const formData = collectForm();
-      if (!formData) return false;
+      if (!formData) { Swal.getConfirmButton().disabled = false; return false; }
 
       const resp = await fetch(`/visits/${visitId}`, {
         method: 'PUT',
