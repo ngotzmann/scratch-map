@@ -4,6 +4,7 @@ import express from 'express';
 import http from 'http';
 import path from 'path';
 import session from 'express-session';
+import compression from 'compression';
 import { createConnection } from './utils/database.js';
 
 // import express router
@@ -16,6 +17,7 @@ app.set('views', path.join(global.__rootDir, 'views'));
 app.set('view engine', 'pug');
 
 // configure express middleware
+app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(session({
